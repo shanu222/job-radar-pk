@@ -9,6 +9,7 @@ import { requireAuth } from '../auth.js';
 import { getSettings, publicSettings } from '../lib/settings.js';
 import { notifyAdmin, esc, layout } from '../lib/email.js';
 import { config } from '../config.js';
+import { paymentLinkToken } from '../jobs/payments.js';
 
 const r = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 4 * 1024 * 1024, files: 1, fields: 10 } });
@@ -69,6 +70,7 @@ r.post('/payments', requireAuth, submitLimiter, upload.single('screenshot'), asy
   }
 
   const appUrl = config.frontendUrl[0];
+  const link = `${config.publicApiUrl}/email-actions/payment?t=${paymentLinkToken(row.id)}`;
   const methodName = METHOD_NAMES[p.data.method];
   notifyAdmin(
     `💰 New ${methodName} payment — Rs ${s.price_pkr} from ${req.user.email}`,
@@ -82,7 +84,11 @@ r.post('/payments', requireAuth, submitLimiter, upload.single('screenshot'), asy
         <tr><td style="padding:4px 12px 4px 0;color:#555">${p.data.method === 'bank' ? 'Sender' : 'Paid from'}</td><td>${esc(p.data.sender_number)}</td></tr>
       </table>
       <p>Check that this ${p.data.method === 'bank' ? 'reference' : 'TID'} and amount appear in your ${p.data.method === 'bank' ? 'HBL account statement' : `${methodName} app`} before approving. The screenshot is attached.</p>
-      <p><a href="${esc(appUrl)}/admin?tab=payments" style="background:#0f5132;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Review in admin panel</a></p>`),
+      <table cellpadding="0" cellspacing="0" style="margin:18px 0"><tr>
+        <td style="padding-right:10px"><a href="${esc(link)}&a=approve" style="display:inline-block;background:#0f5132;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:700">✅ Approve</a></td>
+        <td><a href="${esc(link)}&a=reject" style="display:inline-block;background:#fff;color:#b91c1c;border:2px solid #b91c1c;padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:700">❌ Reject</a></td>
+      </tr></table>
+      <p style="font-size:13px;color:#555">Each button opens a confirmation page — nothing changes until you confirm there. Links work for 14 days. You can also review it in the <a href="${esc(appUrl)}/admin?tab=payments">admin panel</a>.</p>`),
     [{ filename: `payment-${row.id}.${mime.split('/')[1]}`, content: req.file.buffer }]
   ).catch(() => {});
 

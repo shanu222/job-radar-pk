@@ -24,10 +24,10 @@ export default function JobDetail({ params }) {
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
       <Link href="/jobs" className="mb-6 inline-flex items-center gap-1 text-sm text-ink-soft hover:text-ink"><ArrowLeft size={16} /> Back to jobs</Link>
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
-        <article className="card rise p-6 sm:p-8">
+        <article className="card rise min-w-0 break-words p-6 sm:p-8">
           <div className="mb-3 flex flex-wrap gap-1.5">
             <span className={`chip ${cat.cls}`}>{cat.label}</span>
-            {(job.tags || []).slice(0, 6).map((t) => <span key={t} className="chip bg-paper text-ink-soft">{t}</span>)}
+            {(job.tags || []).filter((t) => t.toLowerCase() !== cat.label.toLowerCase() && !t.startsWith('search:')).slice(0, 6).map((t) => <span key={t} className="chip bg-paper text-ink-soft">{t}</span>)}
           </div>
           <h1 className="font-display text-2xl font-bold leading-tight sm:text-3xl">{job.title}</h1>
           <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-ink-soft">

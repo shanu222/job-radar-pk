@@ -8,6 +8,7 @@ import {
 import { api, API, getToken, fmtDate } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import RequireAuth from '@/components/RequireAuth';
+import { useDialog } from '@/components/Dialog';
 
 const TABS = [
   ['overview', 'Overview', LayoutDashboard], ['payments', 'Payments', Wallet], ['users', 'Users', Users],
@@ -86,15 +87,17 @@ function Payments() {
   const [shot, setShot] = useState(null);
   const [busy, setBusy] = useState(null);
   const [notes, setNotes] = useState({});
+  const dlg = useDialog();
   const load = useCallback(() => { setList(null); api(`/api/admin/payments?status=${status}`).then((d) => setList(d.payments)); }, [status]);
   useEffect(load, [load]);
 
   const review = async (p, action) => {
-    if (action === 'reject' && !notes[p.id]) { if (!confirm('Reject without a reason? The user will be emailed.')) return; }
-    if (action === 'approve' && !confirm(`Approve TID ${p.txn_id} for ${p.email}?\n\nOnly approve after you see this ${p.method === 'bank' ? 'reference' : 'TID'} and Rs ${p.amount} in your ${{ easypaisa: 'Easypaisa app', jazzcash: 'JazzCash app', bank: 'HBL statement' }[p.method]}.`)) return;
+    const ref = p.method === 'bank' ? 'reference' : 'TID';
+    if (action === 'reject' && !notes[p.id] && !(await dlg.confirm({ title: 'Reject without a reason?', message: 'The user will be emailed that their payment could not be verified.', confirmLabel: 'Reject', danger: true }))) return;
+    if (action === 'approve' && !(await dlg.confirm({ title: `Approve ${ref} ${p.txn_id}?`, message: `${p.email} will get Pro access.\n\nOnly approve after you see this ${ref} and Rs ${p.amount} in your ${{ easypaisa: 'Easypaisa app', jazzcash: 'JazzCash app', bank: 'HBL statement' }[p.method]}.`, confirmLabel: 'Approve' }))) return;
     setBusy(p.id);
     try { await api(`/api/admin/payments/${p.id}/review`, { method: 'POST', body: { action, note: notes[p.id] || undefined } }); load(); }
-    catch (e) { alert(e.message); } finally { setBusy(null); }
+    catch (e) { dlg.alert({ title: 'Could not update payment', message: e.message, danger: true }); } finally { setBusy(null); }
   };
 
   return (
@@ -147,22 +150,25 @@ function UsersTab() {
   const [filter, setFilter] = useState('');
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(null);
+  const dlg = useDialog();
   const load = useCallback(() => api(`/api/admin/users?q=${encodeURIComponent(q)}&filter=${filter}`).then(setData), [q, filter]);
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [load]);
 
   const patch = async (u, body, confirmMsg) => {
-    if (confirmMsg && !confirm(confirmMsg)) return;
+    if (confirmMsg && !(await dlg.confirm({ ...confirmMsg }))) return;
     setBusy(u.id);
     try { await api(`/api/admin/users/${u.id}`, { method: 'PATCH', body }); await load(); }
-    catch (e) { alert(e.message); } finally { setBusy(null); }
+    catch (e) { dlg.alert({ title: 'Could not update user', message: e.message, danger: true }); } finally { setBusy(null); }
   };
-  const extend = (u) => {
-    const v = prompt(`Add how many days of Pro for ${u.email}? (negative to remove)`, '30');
-    if (v && Number.isInteger(Number(v))) patch(u, { extend_days: Number(v) });
+  const extend = async (u) => {
+    const v = await dlg.prompt({ title: 'Add Pro days', message: `How many days of Pro for ${u.email}? Use a negative number to remove days.`, defaultValue: '30', type: 'number', confirmLabel: 'Apply' });
+    if (v && Number.isInteger(Number(v)) && Number(v) !== 0) patch(u, { extend_days: Number(v) });
   };
   const del = async (u) => {
-    if (!confirm(`Permanently delete ${u.email} and all their data? This cannot be undone.`)) return;
-    try { await api(`/api/admin/users/${u.id}`, { method: 'DELETE' }); load(); } catch (e) { alert(e.message); }
+    if (!(await dlg.confirm({ title: 'Delete this account?', message: `${u.email} and all their data (CV, saved jobs, payments) will be permanently deleted. This cannot be undone.`, confirmLabel: 'Delete account', danger: true }))) return;
+    setBusy(u.id);
+    try { await api(`/api/admin/users/${u.id}`, { method: 'DELETE' }); await load(); }
+    catch (e) { dlg.alert({ title: 'Could not delete', message: e.message, danger: true }); } finally { setBusy(null); }
   };
 
   return (
@@ -193,8 +199,8 @@ function UsersTab() {
                 <button onClick={() => patch(u, { is_free: !u.is_free })} className={`btn-ghost px-2.5 py-1.5 text-xs ${u.is_free ? 'border-brand text-brand' : ''}`} title="Give / remove free Pro access"><Gift size={13} />{u.is_free ? 'Free ✓' : 'Make free'}</button>
                 <button onClick={() => extend(u)} className="btn-ghost px-2.5 py-1.5 text-xs" title="Add or remove Pro days">+ Days</button>
                 {u.id !== me.id && <>
-                  <button onClick={() => patch(u, { disabled: !u.disabled }, u.disabled ? null : `Suspend ${u.email}? They will be signed out.`)} className="btn-ghost px-2.5 py-1.5 text-xs" title={u.disabled ? 'Restore' : 'Suspend'}>{u.disabled ? <RotateCcw size={13} /> : <Ban size={13} />}{u.disabled ? 'Restore' : 'Suspend'}</button>
-                  <button onClick={() => patch(u, { role: u.role === 'admin' ? 'user' : 'admin' }, u.role === 'admin' ? `Remove admin rights from ${u.email}?` : `Make ${u.email} an ADMIN? They will be able to approve payments and change all settings.`)} className="btn-ghost px-2.5 py-1.5 text-xs"><Shield size={13} />{u.role === 'admin' ? 'Demote' : 'Make admin'}</button>
+                  <button onClick={() => patch(u, { disabled: !u.disabled }, u.disabled ? null : { title: 'Suspend this user?', message: `${u.email} will be signed out and can't sign in until restored.`, confirmLabel: 'Suspend', danger: true })} className="btn-ghost px-2.5 py-1.5 text-xs" title={u.disabled ? 'Restore' : 'Suspend'}>{u.disabled ? <RotateCcw size={13} /> : <Ban size={13} />}{u.disabled ? 'Restore' : 'Suspend'}</button>
+                  <button onClick={() => patch(u, { role: u.role === 'admin' ? 'user' : 'admin' }, u.role === 'admin' ? { title: 'Remove admin rights?', message: `${u.email} will become a normal user.`, confirmLabel: 'Demote' } : { title: 'Make this user an admin?', message: `${u.email} will be able to approve payments, delete users and change all settings.`, confirmLabel: 'Make admin', danger: true })} className="btn-ghost px-2.5 py-1.5 text-xs"><Shield size={13} />{u.role === 'admin' ? 'Demote' : 'Make admin'}</button>
                   <button onClick={() => del(u)} className="btn-ghost px-2.5 py-1.5 text-xs text-danger">Delete</button>
                 </>}
               </>}
@@ -223,6 +229,7 @@ function SettingsTab() {
   const [secrets, setSecrets] = useState({ ai: '', resend: '' });
   const [msg, setMsg] = useState(null);
   const [test, setTest] = useState({});
+  const dlg = useDialog();
   useEffect(() => { api('/api/admin/settings').then((d) => setS(d.settings)); }, []);
   if (!s) return <div className="card h-64 animate-pulse" />;
 
@@ -296,7 +303,7 @@ function SettingsTab() {
         <div className="flex flex-wrap gap-2">
           <button onClick={() => save({ ai: { provider: s.ai.provider, model: s.ai.model, baseUrl: s.ai.baseUrl || '', enabled: s.ai.enabled, apiKey: secrets.ai || undefined } })} className="btn-primary">Save</button>
           <button onClick={() => runTest('ai')} className="btn-ghost">{test.ai?.busy ? <Loader2 size={15} className="animate-spin" /> : <Bot size={15} />}Test AI</button>
-          {s.ai.apiKey.set && <button onClick={() => confirm('Remove the saved AI key?') && save({ ai: { apiKey: '__clear__' } })} className="btn-ghost text-danger">Remove key</button>}
+          {s.ai.apiKey.set && <button onClick={async () => (await dlg.confirm({ title: 'Remove the saved AI key?', message: 'AI will fall back to the keys set in Railway.', confirmLabel: 'Remove', danger: true })) && save({ ai: { apiKey: '__clear__' } })} className="btn-ghost text-danger">Remove key</button>}
         </div>
         {test.ai?.results && (
           <div className="divide-y divide-line rounded-xl border border-line text-sm">

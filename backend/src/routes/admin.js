@@ -10,7 +10,7 @@ import { runIngest } from '../jobs/ingest.js';
 import { runReminders } from '../jobs/reminders.js';
 import { plannedSearches, creditsUsed } from '../sources/jsearch.js';
 import { ALL_SOURCES } from '../sources/index.js';
-import { config } from '../config.js';
+import { reviewPayment } from '../jobs/payments.js';
 
 const r = Router();
 r.use(requireAdmin);
@@ -129,39 +129,9 @@ const review = z.object({ action: z.enum(['approve', 'reject']), note: z.string(
 r.post('/payments/:id/review', wrap(async (req, res) => {
   const p = review.safeParse(req.body);
   if (!p.success) return res.status(400).json({ error: p.error.issues[0].message });
-  const s = await getSettings();
-  const days = p.data.days || s.plan_days;
-  const id = Number(req.params.id);
-  // Only a pending payment can be reviewed — prevents double-approving
-  const { rows: [pay] } = await query(
-    `UPDATE payments SET status = $2, admin_note = $3, days_granted = $4, reviewed_by = $5, reviewed_at = now()
-      WHERE id = $1 AND status = 'pending' RETURNING *`,
-    [id, p.data.action === 'approve' ? 'approved' : 'rejected', p.data.note || null, p.data.action === 'approve' ? days : null, adminId(req)]);
-  if (!pay) return res.status(409).json({ error: 'This payment was already reviewed' });
-
-  let user;
-  if (p.data.action === 'approve') {
-    ({ rows: [user] } = await query(
-      `UPDATE users SET paid_until = GREATEST(coalesce(paid_until, now()), now()) + ($2 || ' days')::interval WHERE id = $1 RETURNING *`,
-      [pay.user_id, days]));
-  } else {
-    ({ rows: [user] } = await query('SELECT * FROM users WHERE id = $1', [pay.user_id]));
-  }
-  await audit(adminId(req), `payment.${p.data.action}`, `payment:${id}`, { user: pay.user_id, txn: pay.txn_id, days, note: p.data.note });
-
-  const appUrl = config.frontendUrl[0];
-  const until = user.paid_until ? new Date(user.paid_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-  sendMail({
-    to: user.email,
-    subject: p.data.action === 'approve' ? '✅ Payment approved — CV matching unlocked' : 'Your payment could not be verified',
-    html: layout(p.data.action === 'approve'
-      ? `<p>Assalam o Alaikum ${esc(user.name || '')},</p><p>Your payment (TID <b>${esc(pay.txn_id)}</b>, Rs ${pay.amount}) has been approved. CV matching, AI tools and deadline alerts are active until <b>${esc(until)}</b>.</p>
-         <p><a href="${esc(appUrl)}/matches" style="background:#0f5132;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">See my matches</a></p>`
-      : `<p>Assalam o Alaikum ${esc(user.name || '')},</p><p>We couldn't verify your payment with TID <b>${esc(pay.txn_id)}</b>.${p.data.note ? ` Reason: ${esc(p.data.note)}` : ''}</p>
-         <p>You can submit it again with the correct details from the <a href="${esc(appUrl)}/billing">billing page</a>.</p>`),
-  }).catch((e) => console.warn('[payment email]', e.message));
-
-  res.json({ payment: { ...pay, screenshot: undefined }, user: await userView(user) });
+  const done = await reviewPayment({ id: Number(req.params.id), action: p.data.action, note: p.data.note, days: p.data.days, adminId: adminId(req), via: 'panel' });
+  if (!done) return res.status(409).json({ error: 'This payment was already reviewed' });
+  res.json({ payment: done.pay, user: await userView(done.user) });
 }));
 
 // ── Settings ─────────────────────────────────────────────────────────────────

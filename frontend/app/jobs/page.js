@@ -80,7 +80,7 @@ function JobsInner() {
             </div>
           </div>
         )}
-        <section>
+        <section className="min-w-0">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-ink-soft">{data ? <><b className="text-ink">{data.total.toLocaleString()}</b> jobs{f.q ? <> for “{f.q}”</> : ''}</> : 'Loading…'}</p>
             <select className="input w-auto py-2" value={f.sort || 'newest'} onChange={(e) => set({ sort: e.target.value })}>

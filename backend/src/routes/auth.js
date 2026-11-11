@@ -6,6 +6,9 @@ import { query } from '../db.js';
 import { signToken, requireAuth, userView } from '../auth.js';
 import { verifyFirebaseIdToken, firebaseEnabled } from '../lib/firebase.js';
 import { searchForUser } from '../jobs/personalSearch.js';
+import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
+import { config } from '../config.js';
+import { sendMail, emailEnabled, esc, layout } from '../lib/email.js';
 
 const r = Router();
 
@@ -111,9 +114,45 @@ r.post('/password', requireAuth, loginLimiter, async (req, res) => {
   res.json({ token: signToken(rows[0]), user: await userView(rows[0]) });
 });
 
-r.delete('/me', requireAuth, async (req, res) => {
-  if (req.user.role === 'admin') return res.status(400).json({ error: 'Admin accounts cannot be deleted here' });
-  await query('DELETE FROM users WHERE id = $1', [req.user.id]);
+// ── Delete my account: a 6-digit code is emailed to the account's address, then confirmed ──
+const deleteLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 5, keyGenerator: (req) => `del${req.user?.id}`, message: { error: 'Too many requests. Try again in an hour.' } });
+const codeHash = (userId, code) => createHmac('sha256', config.jwtSecret).update(`delete:${userId}:${code}`).digest('hex');
+
+r.post('/delete/request', requireAuth, deleteLimiter, async (req, res) => {
+  if (req.user.role === 'admin') return res.status(400).json({ error: 'Admin accounts can’t be deleted here. Remove the admin role first.' });
+  if (!(await emailEnabled())) return res.status(503).json({ error: 'Email is not available right now. Please try again later.' });
+  const code = String(randomInt(100000, 1000000));
+  await query(
+    `INSERT INTO account_deletion_codes (user_id, code_hash, expires_at, attempts) VALUES ($1, $2, now() + interval '15 minutes', 0)
+     ON CONFLICT (user_id) DO UPDATE SET code_hash = EXCLUDED.code_hash, expires_at = EXCLUDED.expires_at, attempts = 0`,
+    [req.user.id, codeHash(req.user.id, code)]);
+  await sendMail({
+    to: req.user.email,
+    subject: `${code} is your JobRadar PK account deletion code`,
+    html: layout(`<p>Assalam o Alaikum ${esc(req.user.name || '')},</p>
+      <p>Someone (hopefully you) asked to <b>permanently delete</b> your JobRadar PK account. Enter this code to confirm:</p>
+      <p style="font-size:32px;font-weight:800;letter-spacing:6px;margin:16px 0">${code}</p>
+      <p style="color:#555">It expires in 15 minutes. If you didn't ask for this, ignore this email — your account is safe — and consider changing your password.</p>`),
+  });
+  const [name, domain] = req.user.email.split('@');
+  res.json({ sentTo: `${name.slice(0, 2)}${'•'.repeat(Math.max(1, name.length - 2))}@${domain}` });
+});
+
+r.post('/delete/confirm', requireAuth, deleteLimiter, async (req, res) => {
+  const code = String(req.body?.code || '').replace(/\D/g, '');
+  if (code.length !== 6) return res.status(400).json({ error: 'Enter the 6-digit code from the email' });
+  const { rows: [row] } = await query('SELECT * FROM account_deletion_codes WHERE user_id = $1', [req.user.id]);
+  if (!row || new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'This code has expired. Request a new one.' });
+  if (row.attempts >= 5) return res.status(429).json({ error: 'Too many wrong codes. Request a new one.' });
+  const a = Buffer.from(codeHash(req.user.id, code), 'hex');
+  const b = Buffer.from(row.code_hash, 'hex');
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    await query('UPDATE account_deletion_codes SET attempts = attempts + 1 WHERE user_id = $1', [req.user.id]);
+    return res.status(400).json({ error: 'That code is not correct' });
+  }
+  const email = req.user.email;
+  await query('DELETE FROM users WHERE id = $1', [req.user.id]); // cascades: saved jobs, payments, AI cache, codes
+  sendMail({ to: email, subject: 'Your JobRadar PK account has been deleted', html: layout('<p>Your account and all its data (CV, saved jobs, payment records) have been permanently deleted. Allah Hafiz!</p>') }).catch(() => {});
   res.json({ ok: true });
 });
 

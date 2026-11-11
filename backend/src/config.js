@@ -4,6 +4,8 @@ export const config = {
   port: Number(env.PORT || 4000),
   databaseUrl: env.DATABASE_URL,
   jwtSecret: env.JWT_SECRET || 'dev-only-change-me',
+  // This API's own public URL (for links in emails). Railway sets RAILWAY_PUBLIC_DOMAIN automatically.
+  publicApiUrl: (env.PUBLIC_API_URL || (env.RAILWAY_PUBLIC_DOMAIN ? `https://${env.RAILWAY_PUBLIC_DOMAIN}` : `http://localhost:${env.PORT || 4000}`)).replace(/\/$/, ''),
   frontendUrl: (env.FRONTEND_URL || 'http://localhost:3000').split(',').map((s) => s.trim()),
   adminKey: env.ADMIN_KEY || '',
 

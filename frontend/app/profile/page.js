@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { X, Check, KeyRound } from 'lucide-react';
+import { X, Check, KeyRound, Trash2, MailCheck } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
@@ -47,6 +48,49 @@ function PasswordForm() {
       {msg?.ok && <p className="rounded-lg bg-brand-tint px-3 py-2 text-sm text-brand-dark">{msg.ok}</p>}
       <button className="btn-ghost">Update password</button>
     </form>
+  );
+}
+
+function DeleteAccount() {
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+  const [step, setStep] = useState('idle'); // idle | sent
+  const [sentTo, setSentTo] = useState('');
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  if (user.role === 'admin') return null;
+
+  const request = async () => {
+    setBusy(true); setError('');
+    try { const d = await api('/api/auth/delete/request', { method: 'POST' }); setSentTo(d.sentTo); setStep('sent'); }
+    catch (e) { setError(e.message); } finally { setBusy(false); }
+  };
+  const confirmDelete = async (e) => {
+    e.preventDefault(); setBusy(true); setError('');
+    try { await api('/api/auth/delete/confirm', { method: 'POST', body: { code } }); signOut(); router.replace('/?deleted=1'); }
+    catch (err) { setError(err.message); } finally { setBusy(false); }
+  };
+
+  return (
+    <section className="mt-6 rounded-2xl border border-danger/30 bg-white p-6 sm:p-8">
+      <h2 className="flex items-center gap-2 font-display text-lg font-bold text-danger"><Trash2 size={18} /> Delete my account</h2>
+      <p className="mt-1 text-sm text-ink-soft">Permanently deletes your account, CV, saved jobs and payment history. Any remaining Pro days are lost. This cannot be undone.</p>
+      {step === 'idle' ? (
+        <button onClick={request} disabled={busy} className="btn mt-4 border border-danger/40 bg-white text-danger hover:bg-danger-tint">{busy ? 'Sending…' : 'Email me a confirmation code'}</button>
+      ) : (
+        <form onSubmit={confirmDelete} className="mt-4 space-y-3">
+          <p className="flex items-center gap-2 rounded-lg bg-paper px-3 py-2 text-sm"><MailCheck size={16} className="text-brand" />We sent a 6-digit code to <b>{sentTo}</b>. It expires in 15 minutes.</p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input className="input font-mono text-lg tracking-[.4em] sm:w-48" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" required
+              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="••••••" />
+            <button disabled={busy || code.length !== 6} className="btn bg-danger text-white hover:opacity-90">{busy ? 'Deleting…' : 'Delete my account permanently'}</button>
+          </div>
+          <button type="button" onClick={request} disabled={busy} className="text-sm font-semibold text-ink-soft hover:text-ink">Send a new code</button>
+        </form>
+      )}
+      {error && <p className="mt-3 rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
+    </section>
   );
 }
 
@@ -98,6 +142,7 @@ function Profile() {
         <button className="btn-primary">{saved ? <><Check size={16} /> Saved</> : 'Save changes'}</button>
       </form>
       <PasswordForm />
+      <DeleteAccount />
     </div>
   );
 }

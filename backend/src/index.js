@@ -11,6 +11,7 @@ import jobRoutes from './routes/jobs.js';
 import meRoutes from './routes/me.js';
 import billingRoutes from './routes/billing.js';
 import adminRoutes from './routes/admin.js';
+import emailActionRoutes from './routes/emailActions.js';
 import { runIngest } from './jobs/ingest.js';
 import { runReminders } from './jobs/reminders.js';
 import { seedAdmin } from './jobs/seedAdmin.js';
@@ -47,6 +48,7 @@ app.get('/health', async (_req, res) => {
   catch { res.status(500).json({ ok: false }); }
 });
 
+app.use('/email-actions', emailActionRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/admin', adminRoutes);

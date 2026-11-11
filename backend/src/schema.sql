@@ -154,3 +154,11 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   calls INT NOT NULL DEFAULT 0,
   PRIMARY KEY (user_id, day)
 );
+
+-- One-time codes emailed to users to confirm deleting their own account
+CREATE TABLE IF NOT EXISTS account_deletion_codes (
+  user_id    INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  code_hash  TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  attempts   INT NOT NULL DEFAULT 0
+);

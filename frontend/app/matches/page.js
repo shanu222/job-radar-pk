@@ -46,7 +46,7 @@ function Matches() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <div className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-display font-semibold">Your profile</h2>
@@ -58,7 +58,7 @@ function Matches() {
           </div>
           <CvUpload compact onDone={(u, isSearching) => { load(); afterUpload(u, isSearching); }} />
         </aside>
-        <section>
+        <section className="min-w-0">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h1 className="flex items-center gap-2 font-display text-2xl font-bold"><Sparkles className="text-brand" size={22} /> Matched to your CV</h1>
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">

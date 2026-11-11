@@ -41,7 +41,7 @@ export default function JobCard({ job, index = 0 }) {
     <article className="card rise group relative p-5 transition hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-12px_rgba(11,31,23,.18)]" style={{ animationDelay: `${Math.min(index, 10) * 35}ms` }}>
       <div className="flex gap-4">
         {job.score != null && <MatchRing score={job.score} />}
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 break-words">
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <span className={`chip ${cat.cls}`}>{cat.label}</span>
             {job.is_remote && job.category !== 'remote' && <span className="chip bg-violet-50 text-violet-800"><Globe2 size={11} />Remote</span>}
