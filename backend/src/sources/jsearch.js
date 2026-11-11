@@ -1,7 +1,9 @@
 // JSearch (RapidAPI) = Google for Jobs data. This is the best single source for Pakistani
 // PRIVATE-sector jobs, because Google already indexes Rozee.pk, LinkedIn, Indeed, Mustakbil,
-// company career pages etc. Free tier ≈ 200 requests/month → keep queries few and run 1–2×/day.
-// Get a key: https://rapidapi.com/letscrape-6bRBa3QguO5/api/jsearch
+// company career pages etc. Every page of results (≤10 jobs) costs 1 request credit, so the free
+// plan only allows a few queries per day. Credits/month ≈ queries × JSEARCH_PAGES × (30 × 24 / JSEARCH_MIN_HOURS).
+// Defaults: 6 queries × 1 page × once a day ≈ 180/month. Raise these after upgrading the plan.
+// Get a key: rapidapi.com → search "JSearch" → the verified one by OpenWeb Ninja.
 import { config } from '../config.js';
 import { getJSON } from '../lib/http.js';
 import { extractDeadline, toISODate } from '../lib/deadline.js';
@@ -10,7 +12,8 @@ const QUERIES = (process.env.JSEARCH_QUERIES ||
   'jobs in Islamabad|jobs in Lahore|jobs in Karachi|software jobs in Pakistan|government jobs in Pakistan|NGO jobs in Pakistan').split('|');
 
 let lastRun = 0;
-const MIN_INTERVAL = Number(process.env.JSEARCH_MIN_HOURS || 12) * 3600000;
+const MIN_INTERVAL = Number(process.env.JSEARCH_MIN_HOURS || 24) * 3600000;
+const PAGES = Math.min(20, Math.max(1, Number(process.env.JSEARCH_PAGES || 1)));
 
 export const jsearch = {
   name: 'jsearch', label: 'Google Jobs (JSearch)', homepage: 'https://rapidapi.com',
@@ -20,11 +23,20 @@ export const jsearch = {
     lastRun = Date.now();
     const out = [];
     for (const q of QUERIES) {
-      const data = await getJSON(
-        `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(q)}&page=1&num_pages=2&country=pk&date_posted=week`,
-        { headers: { 'x-rapidapi-key': config.rapidApiKey, 'x-rapidapi-host': 'jsearch.p.rapidapi.com' } }
-      );
-      for (const j of data.data || []) {
+      let data;
+      try {
+        data = await getJSON(
+          `https://jsearch.p.rapidapi.com/search?query=${encodeURIComponent(q.trim())}&num_pages=${PAGES}&country=pk&date_posted=week`,
+          { headers: { 'x-rapidapi-key': config.rapidApiKey, 'x-rapidapi-host': 'jsearch.p.rapidapi.com' } }
+        );
+      } catch (e) {
+        console.warn(`[jsearch] "${q}": ${e.message}`);
+        if (/\b(403|429)\b/.test(e.message)) break; // not subscribed or monthly quota used up — stop spending calls
+        continue;
+      }
+      // Response is { data: [jobs] } (older) or { data: { jobs: [...], cursor } } (newer)
+      const list = Array.isArray(data.data) ? data.data : data.data?.jobs || data.data?.results || [];
+      for (const j of list) {
         const exp = j.job_offer_expiration_datetime_utc;
         const govt = /government|ministry|authority|commission|federal|provincial|wapda|pakistan army|navy|air force|police|psc\b/i.test(`${j.employer_name} ${j.job_title}`);
         out.push({
