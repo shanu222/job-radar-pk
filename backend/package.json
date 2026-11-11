@@ -1,0 +1,31 @@
+{
+  "name": "jobradar-backend",
+  "version": "1.0.0",
+  "description": "JobRadar PK — job aggregator API (Pakistan govt, private, international remote, Reddit)",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "ingest": "node src/jobs/runIngestOnce.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.8.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.16",
+    "pdf-parse": "^1.1.1",
+    "pg": "^8.13.1",
+    "rss-parser": "^3.13.0",
+    "zod": "^3.24.1"
+  }
+}

@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif;
+  --color-ink: #0b1f17;
+  --color-ink-soft: #3d5248;
+  --color-paper: #f7f6f1;
+  --color-line: #e3e1d8;
+  --color-brand: #0d6b45;
+  --color-brand-dark: #08492f;
+  --color-brand-tint: #e3f2ea;
+  --color-mint: #b7f0c9;
+  --color-alert: #c2410c;
+  --color-alert-tint: #fff1e6;
+  --color-danger: #b91c1c;
+  --color-danger-tint: #fdecec;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--color-paper); color: var(--color-ink); -webkit-font-smoothing: antialiased; }
+
+@utility card { @apply bg-white border border-line rounded-2xl; }
+@utility btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition active:scale-[.98] disabled:opacity-50 disabled:pointer-events-none; }
+@utility btn-primary { @apply btn bg-brand text-white hover:bg-brand-dark; }
+@utility btn-ghost { @apply btn bg-white border border-line text-ink hover:border-ink/30; }
+@utility input { @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10; }
+@utility chip { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium; }
+@utility label { @apply text-xs font-semibold uppercase tracking-wider text-ink-soft; }
+
+.grain {
+  background-image:
+    radial-gradient(ellipse 80% 60% at 70% 0%, rgba(183,240,201,.55), transparent 60%),
+    radial-gradient(ellipse 50% 50% at 0% 30%, rgba(13,107,69,.10), transparent 70%);
+}
+
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise .45s cubic-bezier(.2,.7,.2,1) both; }
