@@ -9,7 +9,7 @@ export const DEFAULTS = {
   jazzcash: { title: 'Shahnawaz', number: '03403318127' },
   bank: { title: 'Shahnawaz', bank: 'HBL (Habib Bank Limited)', accountNumber: '24897000279603', iban: 'PK43HABB0024897000279603', branch: 'Karsaz, Karachi' },
   payment_instructions: '',
-  ai: { provider: 'anthropic', apiKey: '', model: '', baseUrl: '', enabled: true },
+  ai: { provider: 'gemini', apiKey: '', model: '', baseUrl: '', enabled: true },
   ai_daily_limit: 20,                  // AI calls per user per day
   email: { resendApiKey: '', from: '', adminNotify: process.env.ADMIN_NOTIFY_EMAIL || '' },
 };
@@ -47,7 +47,7 @@ const mask = (v) => (v ? { set: true, last4: String(v).slice(-4) } : { set: fals
 export function maskedSettings(s) {
   return {
     ...s,
-    ai: { ...s.ai, apiKey: mask(s.ai.apiKey || process.env.ANTHROPIC_API_KEY) },
+    ai: { ...s.ai, apiKey: mask(s.ai.apiKey) },
     email: { ...s.email, resendApiKey: mask(s.email.resendApiKey || process.env.RESEND_API_KEY) },
   };
 }

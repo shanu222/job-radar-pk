@@ -5,7 +5,7 @@ import { query } from '../db.js';
 import { requireAdmin, audit, userView } from '../auth.js';
 import { getSettings, setSetting, maskedSettings, DEFAULTS } from '../lib/settings.js';
 import { sendMail, esc, layout, emailEnabled } from '../lib/email.js';
-import { testAI, aiAvailable } from '../lib/ai.js';
+import { testAI, aiAvailable, aiStatus } from '../lib/ai.js';
 import { runIngest } from '../jobs/ingest.js';
 import { runReminders } from '../jobs/reminders.js';
 import { plannedSearches, creditsUsed } from '../sources/jsearch.js';
@@ -176,7 +176,7 @@ const settingsSchema = z.object({
   jazzcash: account,
   bank: z.object({ title: z.string().trim().max(80), bank: z.string().trim().max(80), accountNumber: z.string().trim().max(40), iban: z.string().trim().max(40), branch: z.string().trim().max(80) }),
   payment_instructions: z.string().max(1000),
-  ai: z.object({ provider: z.enum(['anthropic', 'openai']), apiKey: z.string().max(400).optional(), model: z.string().max(100), baseUrl: z.string().max(200).refine((v) => !v || /^https:\/\//.test(v), 'Base URL must start with https://'), enabled: z.boolean() }).partial(),
+  ai: z.object({ provider: z.enum(['gemini', 'openrouter', 'openai', 'anthropic']), apiKey: z.string().max(400).optional(), model: z.string().max(100), baseUrl: z.string().max(200).refine((v) => !v || /^https:\/\//.test(v), 'Base URL must start with https://'), enabled: z.boolean() }).partial(),
   ai_daily_limit: z.number().int().min(0).max(1000),
   email: z.object({ resendApiKey: z.string().max(200).optional(), from: z.string().max(200), adminNotify: z.string().max(200).refine((v) => !v || z.string().email().safeParse(v).success, 'Admin notification email is not valid') }).partial(),
 }).partial().strict();
@@ -215,6 +215,7 @@ r.post('/test/ai', wrap(async (_req, res) => {
   try { res.json(await testAI()); }
   catch (e) { res.status(e.status || 502).json({ error: e.detail || e.message }); }
 }));
+r.get('/ai/status', wrap(async (_req, res) => res.json({ models: await aiStatus() })));
 
 // ── Data / jobs ──────────────────────────────────────────────────────────────
 r.get('/sources', wrap(async (_req, res) => {

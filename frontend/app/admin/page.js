@@ -233,7 +233,11 @@ function SettingsTab() {
   };
   const runTest = async (kind) => {
     setTest({ [kind]: { busy: true } });
-    try { const d = await api(`/api/admin/test/${kind}`, { method: 'POST' }); setTest({ [kind]: { ok: kind === 'ai' ? `✓ ${d.provider} / ${d.model}: ${d.reply}` : d.message } }); }
+    try {
+      const d = await api(`/api/admin/test/${kind}`, { method: 'POST' });
+      if (kind === 'ai') setTest({ ai: { results: d.results } });
+      else setTest({ [kind]: { ok: d.message } });
+    }
     catch (e) { setTest({ [kind]: { err: e.message } }); }
   };
   const set = (k, v) => setS({ ...s, [k]: v });
@@ -278,23 +282,34 @@ function SettingsTab() {
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="block"><span className="label">Provider</span>
             <select className="input mt-2" value={s.ai.provider} onChange={(e) => set('ai', { ...s.ai, provider: e.target.value })}>
-              <option value="anthropic">Anthropic (Claude)</option><option value="openai">OpenAI or compatible (Groq, DeepSeek, OpenRouter…)</option>
+              <option value="gemini">Google Gemini</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI or compatible (Groq, DeepSeek…)</option><option value="anthropic">Anthropic (Claude)</option>
             </select></label>
           <label className="block"><span className="label">Model (leave empty for default)</span>
-            <input className="input mt-2 font-mono" value={s.ai.model} onChange={(e) => set('ai', { ...s.ai, model: e.target.value })} placeholder={s.ai.provider === 'anthropic' ? 'claude-haiku-5-5' : 'gpt-4o-mini'} /></label>
+            <input className="input mt-2 font-mono" value={s.ai.model} onChange={(e) => set('ai', { ...s.ai, model: e.target.value })} placeholder={{ gemini: 'gemini-2.5-flash', openrouter: 'meta-llama/llama-3.3-70b-instruct:free', openai: 'gpt-4.1-mini', anthropic: 'claude-haiku-5-5' }[s.ai.provider]} /></label>
         </div>
         {s.ai.provider === 'openai' && <label className="block"><span className="label">Base URL (only for non-OpenAI providers)</span>
           <input className="input mt-2 font-mono" value={s.ai.baseUrl} onChange={(e) => set('ai', { ...s.ai, baseUrl: e.target.value })} placeholder="https://api.openai.com/v1" /></label>}
         <label className="block"><span className="label flex items-center gap-2">API key {keyStatus(s.ai.apiKey)}</span>
           <input type="password" autoComplete="off" className="input mt-2 font-mono" value={secrets.ai} onChange={(e) => setSecrets({ ...secrets, ai: e.target.value })} placeholder={s.ai.apiKey.set ? 'Leave empty to keep the saved key' : 'Paste your API key'} /></label>
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-[#0d6b45]" checked={s.ai.enabled} onChange={(e) => set('ai', { ...s.ai, enabled: e.target.checked })} /> AI features enabled</label>
-        <p className="text-xs text-ink-soft">Used for reading CVs, job fit checks and cover letters. The key is stored on the server only and is never sent to browsers.</p>
+        <p className="text-xs text-ink-soft">Used for reading CVs, job fit checks and cover letters. A key saved here is tried first; keys set in Railway (Gemini, OpenRouter, OpenAI) are used automatically as fallbacks when a limit is reached. Keys never reach browsers.</p>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => save({ ai: { provider: s.ai.provider, model: s.ai.model, baseUrl: s.ai.baseUrl || '', enabled: s.ai.enabled, apiKey: secrets.ai || undefined } })} className="btn-primary">Save</button>
           <button onClick={() => runTest('ai')} className="btn-ghost">{test.ai?.busy ? <Loader2 size={15} className="animate-spin" /> : <Bot size={15} />}Test AI</button>
           {s.ai.apiKey.set && <button onClick={() => confirm('Remove the saved AI key?') && save({ ai: { apiKey: '__clear__' } })} className="btn-ghost text-danger">Remove key</button>}
         </div>
-        {test.ai?.ok && <p className="rounded-lg bg-brand-tint px-3 py-2 text-sm text-brand-dark">{test.ai.ok}</p>}
+        {test.ai?.results && (
+          <div className="divide-y divide-line rounded-xl border border-line text-sm">
+            {test.ai.results.map((r) => (
+              <div key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
+                <span className={`chip ${r.ok ? 'bg-brand-tint text-brand-dark' : 'bg-danger-tint text-danger'}`}>{r.ok ? 'Working' : 'Failed'}</span>
+                <span className="font-mono text-xs">{r.id}</span>
+                <span className="ml-auto text-xs text-ink-soft">{r.ok ? `${(r.ms / 1000).toFixed(1)}s` : r.error}</span>
+              </div>
+            ))}
+            <p className="px-3 py-2 text-xs text-ink-soft">Requests use the first working model in this order and switch automatically when one hits its limit.</p>
+          </div>
+        )}
         {test.ai?.err && <p className="rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{test.ai.err}</p>}
       </Section>
 
