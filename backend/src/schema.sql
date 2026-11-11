@@ -66,6 +66,22 @@ CREATE TABLE IF NOT EXISTS reminders_sent (
   PRIMARY KEY (user_id, job_id, kind)
 );
 
+-- Paid-API credit tracking (e.g. JSearch), per calendar month
+CREATE TABLE IF NOT EXISTS api_usage (
+  source TEXT NOT NULL,
+  month  TEXT NOT NULL,                -- 'YYYY-MM'
+  calls  INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (source, month)
+);
+
+-- When each search query last ran, so the same query isn't paid for twice in a day
+CREATE TABLE IF NOT EXISTS search_queries (
+  source  TEXT NOT NULL,
+  q       TEXT NOT NULL,
+  last_run TIMESTAMPTZ,
+  PRIMARY KEY (source, q)
+);
+
 CREATE TABLE IF NOT EXISTS ingest_runs (
   id SERIAL PRIMARY KEY,
   source TEXT,

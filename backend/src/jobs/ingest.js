@@ -45,6 +45,15 @@ async function upsert(rows) {
 }
 
 let running = false;
+/** Clean, de-dupe and upsert a batch of normalized jobs from one source. Returns rows written. */
+export async function saveJobs(source, raw) {
+  // De-dupe within a batch (ON CONFLICT can't touch the same row twice in one statement)
+  const map = new Map();
+  for (const j of raw) { const c = clean(j, source); if (c) map.set(c.external_id, c); }
+  const rows = [...map.values()];
+  return rows.length ? upsert(rows) : 0;
+}
+
 export async function runIngest() {
   if (running) return { skipped: true };
   running = true;
@@ -54,11 +63,7 @@ export async function runIngest() {
       const t0 = Date.now();
       try {
         const raw = await src.fetch();
-        // De-dupe within a batch (ON CONFLICT can't touch the same row twice in one statement)
-        const map = new Map();
-        for (const j of raw) { const c = clean(j, src.name); if (c) map.set(c.external_id, c); }
-        const rows = [...map.values()];
-        const upserted = rows.length ? await upsert(rows) : 0;
+        const upserted = await saveJobs(src.name, raw);
         await query('INSERT INTO ingest_runs (source, fetched, upserted) VALUES ($1,$2,$3)', [src.name, raw.length, upserted]);
         summary.push({ source: src.name, fetched: raw.length, upserted, ms: Date.now() - t0 });
         console.log(`[ingest] ${src.name}: ${raw.length} fetched, ${upserted} upserted (${Date.now() - t0}ms)`);

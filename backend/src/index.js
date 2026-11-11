@@ -12,6 +12,7 @@ import meRoutes from './routes/me.js';
 import { runIngest } from './jobs/ingest.js';
 import { runReminders } from './jobs/reminders.js';
 import { emailEnabled } from './lib/email.js';
+import { plannedSearches, creditsUsed } from './sources/jsearch.js';
 
 const app = express();
 app.set('trust proxy', 1); // Railway sits behind a proxy
@@ -36,6 +37,8 @@ app.use('/api', jobRoutes);
 app.use('/api/me', meRoutes);
 
 app.post('/api/admin/ingest', requireAdmin, async (_req, res) => res.json({ result: await runIngest() }));
+// Which CV-based Google Jobs searches will run (admin only: built from users' job titles)
+app.get('/api/admin/searches', requireAdmin, async (_req, res) => res.json({ credits: await creditsUsed(), searches: await plannedSearches() }));
 app.post('/api/admin/reminders', requireAdmin, async (_req, res) => res.json(await runReminders()));
 
 app.use((err, _req, res, _next) => {

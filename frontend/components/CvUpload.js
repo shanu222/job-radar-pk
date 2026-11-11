@@ -18,9 +18,9 @@ export default function CvUpload({ onDone, compact }) {
     const form = new FormData();
     form.append('cv', file);
     try {
-      const { user } = await api('/api/me/cv', { method: 'POST', form });
+      const { user, searching } = await api('/api/me/cv', { method: 'POST', form });
       setUser(user);
-      onDone?.(user);
+      onDone?.(user, searching);
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
 

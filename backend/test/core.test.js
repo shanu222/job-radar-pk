@@ -47,3 +47,24 @@ test('govt listing scraper finds rows and closing dates', () => {
   assert.ok(jobs[0].tags.includes('BS-17'));
   assert.equal(jobs[1].deadline, '2026-12-05');
 });
+
+import { cleanTitle, queriesForUser } from '../src/sources/jsearch.js';
+
+test('JSearch searches come from the CV, not a fixed list', () => {
+  assert.equal(cleanTitle('Full Stack Developer | AI Engineer'), 'full stack developer');
+  assert.equal(cleanTitle('Senior Data Analyst at Systems Ltd'), 'data analyst');
+  assert.equal(cleanTitle('Manager'), ''); // too generic to search on its own
+
+  const u = { titles: ['Full Stack Developer | AI Engineer', 'Assistant Manager, Disaster Management Authority'], skills: ['react'], pref_locations: ['Islamabad', 'Remote'] };
+  assert.deepEqual(queriesForUser(u), [
+    { q: 'full stack developer in Islamabad', remote: false },
+    { q: 'remote full stack developer', remote: true },
+    { q: 'assistant manager in Islamabad', remote: false },
+    { q: 'remote assistant manager', remote: true },
+  ]);
+  // No titles → strongest skills; no location preference → Pakistan
+  assert.deepEqual(queriesForUser({ titles: [], skills: ['gis', 'python'] }), [
+    { q: 'gis jobs in Pakistan', remote: false },
+    { q: 'python jobs in Pakistan', remote: false },
+  ]);
+});

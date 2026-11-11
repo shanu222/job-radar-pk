@@ -15,6 +15,7 @@ function Matches() {
   const [category, setCategory] = useState('');
   const [closing, setClosing] = useState(false);
   const [data, setData] = useState(null);
+  const [searching, setSearching] = useState(false);
 
   const load = useCallback(() => {
     setData(null);
@@ -22,11 +23,20 @@ function Matches() {
   }, [category, closing]);
   useEffect(() => { if (user?.has_cv || user?.skills?.length) load(); }, [load, user]);
 
+  // After a CV upload the server searches Google Jobs (LinkedIn, Indeed, Rozee…) with this CV's
+  // job titles in the background; refresh the list a couple of times while that finishes.
+  const afterUpload = (_u, isSearching) => {
+    if (!isSearching) return;
+    setSearching(true);
+    setTimeout(load, 20000);
+    setTimeout(() => { load(); setSearching(false); }, 45000);
+  };
+
   if (!user.has_cv && !user.skills?.length) return (
     <div className="mx-auto max-w-2xl px-4 py-16">
       <h1 className="font-display text-3xl font-bold">Find jobs that fit your CV</h1>
       <p className="mb-8 mt-2 text-ink-soft">We read your skills, job titles and experience, then score every job in Pakistan and abroad against them. Your CV stays private.</p>
-      <CvUpload />
+      <CvUpload onDone={afterUpload} />
     </div>
   );
 
@@ -43,7 +53,7 @@ function Matches() {
             {user.experience_years != null && <p className="mb-3 text-sm"><b>{user.experience_years}</b> years experience</p>}
             <div className="flex flex-wrap gap-1.5">{user.skills?.map((s) => <span key={s} className="chip bg-brand-tint text-brand-dark">{s}</span>)}</div>
           </div>
-          <CvUpload compact onDone={load} />
+          <CvUpload compact onDone={(u, isSearching) => { load(); afterUpload(u, isSearching); }} />
         </aside>
         <section>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
@@ -52,6 +62,12 @@ function Matches() {
               <input type="checkbox" className="h-4 w-4 accent-[#0d6b45]" checked={closing} onChange={(e) => setClosing(e.target.checked)} /> Closing in 2 weeks
             </label>
           </div>
+          {searching && (
+            <div className="mb-4 flex items-center gap-3 rounded-xl border border-brand/20 bg-brand-tint px-4 py-3 text-sm text-brand-dark">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-brand" />
+              Searching LinkedIn, Indeed, Rozee and more for jobs that fit your CV — new results will appear here in a moment.
+            </div>
+          )}
           <div className="mb-5 flex gap-1 overflow-x-auto">
             {TABS.map(([v, l]) => <button key={v} onClick={() => setCategory(v)} className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium ${category === v ? 'bg-ink text-white' : 'text-ink-soft hover:bg-white'}`}>{l}</button>)}
           </div>

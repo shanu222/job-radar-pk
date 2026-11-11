@@ -21,7 +21,7 @@ One place for **every job in Pakistan and international remote work** — govern
 | Source | Covers | Key needed? | Deadlines |
 |---|---|---|---|
 | **Pakistan govt scraper** (`pkgov`) | FPSC, PPSC, KPPSC, SPSC, BPSC, NTS, PTS, OTS, ETEA, National Job Portal, newspaper ads via Jobz.pk | No | Parsed from "Last date…" text / table columns |
-| **JSearch / Google Jobs** (`jsearch`) | Pakistani **private sector** — Google indexes Rozee.pk, LinkedIn, Indeed, Mustakbil, company sites | RapidAPI key (free tier ≈200 req/month) | When the listing has one |
+| **JSearch / Google Jobs** (`jsearch`) | LinkedIn, Indeed, Rozee.pk, Glassdoor, company sites. **Searches are built from each user's CV** (job titles × preferred locations, plus remote if wanted) and run right after a CV upload | RapidAPI key; spending capped by `JSEARCH_MONTHLY_CREDITS` | When the listing has one |
 | **ReliefWeb** (`reliefweb`) | UN agencies, INGOs, NGOs in Pakistan (+ home-based) | Free appname | ✅ Real closing dates |
 | **Remotive, Remote OK, Arbeitnow, Jobicy, Himalayas** | International remote jobs | No | Himalayas has real expiry dates; others parsed from text |
 | **We Work Remotely + any RSS** (`rss`) | Remote jobs; add more feeds with `RSS_FEEDS` | No | Parsed from text |
@@ -92,6 +92,7 @@ Any SMTP works. Easiest options: **Gmail** (`smtp.gmail.com`, port 587, with an 
 | GET/POST/PATCH/DELETE | `/api/me/saved[/:jobId]` | Tracker |
 | GET | `/api/me/saved/calendar.ics?token=` | Calendar feed |
 | POST | `/api/admin/ingest` · `/api/admin/reminders` | Header `x-admin-key` |
+| GET | `/api/admin/searches` | CV-based JSearch searches queued + credits used this month (header `x-admin-key`) |
 
 ## Extending
 - **Add a govt/company site:** append to `backend/src/sources/pk-sites.json` (`id`, `org`, `location`, `url`, `category`).

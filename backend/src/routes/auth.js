@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { query } from '../db.js';
 import { signToken, requireAuth, publicUser } from '../auth.js';
+import { searchForUser } from '../jobs/personalSearch.js';
 
 const r = Router();
 
@@ -46,7 +47,9 @@ r.patch('/me', requireAuth, async (req, res) => {
   if (!fields.length) return res.json({ user: publicUser(req.user) });
   const sets = fields.map(([k], i) => `${k} = $${i + 2}`).join(', ');
   const { rows } = await query(`UPDATE users SET ${sets} WHERE id = $1 RETURNING *`, [req.user.id, ...fields.map(([, v]) => (Array.isArray(v) ? v.map((s) => s.trim()).filter(Boolean) : v))]);
-  res.json({ user: publicUser(rows[0]) });
+  const searchInputsChanged = ['titles', 'skills', 'pref_locations', 'pref_categories'].some((k) => k in p.data);
+  if (searchInputsChanged) searchForUser(rows[0]).catch((e) => console.warn('[profile] personal search:', e.message));
+  res.json({ user: publicUser(rows[0]), searching: searchInputsChanged });
 });
 
 r.delete('/me', requireAuth, async (req, res) => {

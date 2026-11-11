@@ -4,6 +4,8 @@ import { query } from '../db.js';
 import { requireAuth, publicUser } from '../auth.js';
 import { extractText, buildProfileFromCV } from '../lib/cvparse.js';
 import { matchJobsForUser } from '../jobs/matching.js';
+import { searchForUser } from '../jobs/personalSearch.js';
+import { config } from '../config.js';
 
 const r = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
@@ -20,7 +22,10 @@ r.post('/cv', requireAuth, upload.single('cv'), async (req, res) => {
     `UPDATE users SET cv_text = $2, skills = $3, titles = $4, experience_years = $5 WHERE id = $1 RETURNING *`,
     [req.user.id, text.slice(0, 50000), profile.skills, profile.titles, profile.experience_years]
   );
-  res.json({ user: publicUser(rows[0]), extracted: profile });
+  // Search Google Jobs (LinkedIn, Indeed, Rozee…) with this CV's titles in the background
+  const searching = !!config.rapidApiKey;
+  if (searching) searchForUser(rows[0]).catch((e) => console.warn('[cv] personal search:', e.message));
+  res.json({ user: publicUser(rows[0]), extracted: profile, searching });
 });
 
 /** Jobs ranked against the user's CV. */

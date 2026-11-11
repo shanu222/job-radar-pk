@@ -3,6 +3,7 @@ import { query } from '../db.js';
 import { optionalAuth } from '../auth.js';
 import { scoreJob } from '../lib/match.js';
 import { ALL_SOURCES } from '../sources/index.js';
+import { creditsUsed, plannedSearches } from '../sources/jsearch.js';
 
 const r = Router();
 const LIST_COLS = `id, source, title, company, location, country, category, is_remote, tags, salary, url, posted_at, deadline,
@@ -85,7 +86,11 @@ r.get('/jobs/:id', optionalAuth, async (req, res) => {
 r.get('/sources', async (_req, res) => {
   const { rows } = await query(`SELECT DISTINCT ON (source) source, fetched, upserted, error, ran_at FROM ingest_runs ORDER BY source, ran_at DESC`);
   const last = Object.fromEntries(rows.map((r) => [r.source, r]));
-  res.json({ sources: ALL_SOURCES.map((s) => ({ name: s.name, label: s.label, homepage: s.homepage, enabled: !s.enabled || s.enabled(), last: last[s.name] || null })) });
+  const searches = await plannedSearches();
+  res.json({
+    sources: ALL_SOURCES.map((s) => ({ name: s.name, label: s.label, homepage: s.homepage, enabled: !s.enabled || s.enabled(), last: last[s.name] || null })),
+    jsearch: { credits: await creditsUsed(), plannedSearches: searches.length },
+  });
 });
 
 export default r;
