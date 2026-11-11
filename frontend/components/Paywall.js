@@ -27,7 +27,7 @@ export default function Paywall({ reason }) {
               [BellRing, 'Daily email when matching jobs are about to close'],
             ].map(([Icon, t]) => <li key={t} className="flex gap-2.5"><Icon size={18} className="mt-0.5 shrink-0 text-brand" />{t}</li>)}
           </ul>
-          <Link href="/billing" className="btn-primary mt-8 h-12 px-8 text-base">Pay with Easypaisa or JazzCash</Link>
+          <Link href="/billing" className="btn-primary mt-8 h-12 px-8 text-base">Pay with Easypaisa, JazzCash or bank</Link>
           <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-soft"><Check size={14} /> Activated as soon as your payment is verified — usually within a few hours.</p>
         </div>
       </div>

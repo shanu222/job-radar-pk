@@ -111,7 +111,7 @@ CREATE TABLE IF NOT EXISTS settings (
 CREATE TABLE IF NOT EXISTS payments (
   id            SERIAL PRIMARY KEY,
   user_id       INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  method        TEXT NOT NULL CHECK (method IN ('easypaisa','jazzcash')),
+  method        TEXT NOT NULL,
   amount        INT NOT NULL,
   txn_id        TEXT NOT NULL,
   sender_number TEXT,
@@ -124,6 +124,8 @@ CREATE TABLE IF NOT EXISTS payments (
   reviewed_at   TIMESTAMPTZ,
   created_at    TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_method_check;
+ALTER TABLE payments ADD CONSTRAINT payments_method_check CHECK (method IN ('easypaisa','jazzcash','bank'));
 -- The same transaction ID can never be used twice (stops re-using one payment for many accounts)
 CREATE UNIQUE INDEX IF NOT EXISTS payments_txn_idx ON payments (method, upper(txn_id));
 CREATE INDEX IF NOT EXISTS payments_status_idx ON payments (status, created_at DESC);

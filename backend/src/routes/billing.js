@@ -32,11 +32,18 @@ r.get('/payments', requireAuth, async (req, res) => {
   res.json({ payments: rows });
 });
 
-const form = z.object({
+const METHOD_NAMES = { easypaisa: 'Easypaisa', jazzcash: 'JazzCash', bank: 'Bank transfer' };
+const wallet = z.object({
   method: z.enum(['easypaisa', 'jazzcash']),
   txn_id: z.string().trim().regex(/^[A-Za-z0-9-]{6,32}$/, 'Enter the Transaction ID / TID exactly as shown in your receipt'),
   sender_number: z.string().trim().regex(/^(\+92|0)3\d{9}$/, 'Enter the mobile number you paid from, e.g. 03001234567'),
 });
+const bank = z.object({
+  method: z.literal('bank'),
+  txn_id: z.string().trim().regex(/^[A-Za-z0-9-]{4,40}$/, 'Enter the transaction reference / STAN number from your bank receipt'),
+  sender_number: z.string().trim().min(3, 'Enter the name or account you paid from').max(60).regex(/^[\p{L}\p{N} .,'()-]+$/u, 'Use letters and numbers only'),
+});
+const form = z.discriminatedUnion('method', [wallet, bank]);
 
 r.post('/payments', requireAuth, submitLimiter, upload.single('screenshot'), async (req, res) => {
   const p = form.safeParse(req.body || {});
@@ -62,7 +69,7 @@ r.post('/payments', requireAuth, submitLimiter, upload.single('screenshot'), asy
   }
 
   const appUrl = config.frontendUrl[0];
-  const methodName = p.data.method === 'easypaisa' ? 'Easypaisa' : 'JazzCash';
+  const methodName = METHOD_NAMES[p.data.method];
   notifyAdmin(
     `💰 New ${methodName} payment — Rs ${s.price_pkr} from ${req.user.email}`,
     layout(`
@@ -72,9 +79,9 @@ r.post('/payments', requireAuth, submitLimiter, upload.single('screenshot'), asy
         <tr><td style="padding:4px 12px 4px 0;color:#555">Method</td><td>${methodName}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#555">Amount</td><td>Rs ${s.price_pkr}</td></tr>
         <tr><td style="padding:4px 12px 4px 0;color:#555">Transaction ID</td><td><b>${esc(row.txn_id)}</b></td></tr>
-        <tr><td style="padding:4px 12px 4px 0;color:#555">Paid from</td><td>${esc(p.data.sender_number)}</td></tr>
+        <tr><td style="padding:4px 12px 4px 0;color:#555">${p.data.method === 'bank' ? 'Sender' : 'Paid from'}</td><td>${esc(p.data.sender_number)}</td></tr>
       </table>
-      <p>Check that this TID appears in your ${methodName} app before approving. The screenshot is attached.</p>
+      <p>Check that this ${p.data.method === 'bank' ? 'reference' : 'TID'} and amount appear in your ${p.data.method === 'bank' ? 'HBL account statement' : `${methodName} app`} before approving. The screenshot is attached.</p>
       <p><a href="${esc(appUrl)}/admin?tab=payments" style="background:#0f5132;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">Review in admin panel</a></p>`),
     [{ filename: `payment-${row.id}.${mime.split('/')[1]}`, content: req.file.buffer }]
   ).catch(() => {});

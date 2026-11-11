@@ -91,7 +91,7 @@ function Payments() {
 
   const review = async (p, action) => {
     if (action === 'reject' && !notes[p.id]) { if (!confirm('Reject without a reason? The user will be emailed.')) return; }
-    if (action === 'approve' && !confirm(`Approve TID ${p.txn_id} for ${p.email}?\n\nOnly approve after you see this TID and Rs ${p.amount} in your ${p.method === 'easypaisa' ? 'Easypaisa' : 'JazzCash'} app.`)) return;
+    if (action === 'approve' && !confirm(`Approve TID ${p.txn_id} for ${p.email}?\n\nOnly approve after you see this ${p.method === 'bank' ? 'reference' : 'TID'} and Rs ${p.amount} in your ${{ easypaisa: 'Easypaisa app', jazzcash: 'JazzCash app', bank: 'HBL statement' }[p.method]}.`)) return;
     setBusy(p.id);
     try { await api(`/api/admin/payments/${p.id}/review`, { method: 'POST', body: { action, note: notes[p.id] || undefined } }); load(); }
     catch (e) { alert(e.message); } finally { setBusy(null); }
@@ -115,8 +115,8 @@ function Payments() {
                 <p className="font-display text-base font-semibold">{p.name || p.email}</p>
                 <p className="text-ink-soft">{p.email}{p.approved_before ? ` · ${p.approved_before} previous payment${p.approved_before > 1 ? 's' : ''}` : ' · first payment'}</p>
                 <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
-                  <span><b className={p.method === 'easypaisa' ? 'text-[#1fb04b]' : 'text-[#d11f2f]'}>{p.method === 'easypaisa' ? 'Easypaisa' : 'JazzCash'}</b> · Rs {p.amount.toLocaleString()}</span>
-                  <span>TID <b className="font-mono">{p.txn_id}</b></span>
+                  <span><b className={{ easypaisa: 'text-[#1fb04b]', jazzcash: 'text-[#d11f2f]', bank: 'text-brand' }[p.method]}>{{ easypaisa: 'Easypaisa', jazzcash: 'JazzCash', bank: 'Bank transfer' }[p.method]}</b> · Rs {p.amount.toLocaleString()}</span>
+                  <span>{p.method === 'bank' ? 'Ref' : 'TID'} <b className="font-mono">{p.txn_id}</b></span>
                   <span>From {p.sender_number}</span>
                   <span className="text-ink-soft">{new Date(p.created_at).toLocaleString('en-GB')}</span>
                 </div>
@@ -257,13 +257,19 @@ function SettingsTab() {
         <button onClick={() => save({ price_pkr: s.price_pkr, plan_days: s.plan_days, ai_daily_limit: s.ai_daily_limit })} className="btn-primary">Save</button>
       </Section>
 
-      <Section title="Payment accounts" onSave={() => save({ easypaisa: s.easypaisa, jazzcash: s.jazzcash, payment_instructions: s.payment_instructions })}>
+      <Section title="Payment accounts" onSave={() => save({ easypaisa: s.easypaisa, jazzcash: s.jazzcash, bank: s.bank, payment_instructions: s.payment_instructions })}>
         {[['easypaisa', 'Easypaisa'], ['jazzcash', 'JazzCash']].map(([k, label]) => (
           <div key={k} className="grid gap-3 sm:grid-cols-2">
             <label className="block"><span className="label">{label} account title</span><input className="input mt-2" value={s[k].title} onChange={(e) => set(k, { ...s[k], title: e.target.value })} placeholder="Name on the account" /></label>
             <label className="block"><span className="label">{label} number</span><input className="input mt-2 font-mono" value={s[k].number} onChange={(e) => set(k, { ...s[k], number: e.target.value })} placeholder="03XXXXXXXXX" /></label>
           </div>
         ))}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {[['title', 'Bank account title'], ['bank', 'Bank'], ['accountNumber', 'Account number'], ['iban', 'IBAN'], ['branch', 'Branch']].map(([k, label]) => (
+            <label key={k} className="block"><span className="label">{label}</span>
+              <input className={`input mt-2 ${k === 'accountNumber' || k === 'iban' ? 'font-mono' : ''}`} value={s.bank[k] || ''} onChange={(e) => set('bank', { ...s.bank, [k]: e.target.value })} /></label>
+          ))}
+        </div>
         <label className="block"><span className="label">Extra instructions (optional)</span>
           <textarea className="input mt-2" rows={2} maxLength={1000} value={s.payment_instructions} onChange={(e) => set('payment_instructions', e.target.value)} placeholder="e.g. Payments are verified 9 AM – 9 PM" /></label>
       </Section>

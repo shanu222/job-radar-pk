@@ -5,8 +5,9 @@ export const DEFAULTS = {
   global_free: false,                  // true = everyone gets CV matching free
   price_pkr: 1000,
   plan_days: 30,
-  easypaisa: { title: '', number: '' },
-  jazzcash: { title: '', number: '' },
+  easypaisa: { title: 'Shahnawaz', number: '03403318127' },
+  jazzcash: { title: 'Shahnawaz', number: '03403318127' },
+  bank: { title: 'Shahnawaz', bank: 'HBL (Habib Bank Limited)', accountNumber: '24897000279603', iban: 'PK43HABB0024897000279603', branch: 'Karsaz, Karachi' },
   payment_instructions: '',
   ai: { provider: 'anthropic', apiKey: '', model: '', baseUrl: '', enabled: true },
   ai_daily_limit: 20,                  // AI calls per user per day
@@ -55,6 +56,6 @@ export function maskedSettings(s) {
 export function publicSettings(s) {
   return {
     global_free: s.global_free, price_pkr: s.price_pkr, plan_days: s.plan_days,
-    easypaisa: s.easypaisa, jazzcash: s.jazzcash, payment_instructions: s.payment_instructions,
+    easypaisa: s.easypaisa, jazzcash: s.jazzcash, bank: s.bank, payment_instructions: s.payment_instructions,
   };
 }

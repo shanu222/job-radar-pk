@@ -174,6 +174,7 @@ const settingsSchema = z.object({
   plan_days: z.number().int().min(1).max(3650),
   easypaisa: account,
   jazzcash: account,
+  bank: z.object({ title: z.string().trim().max(80), bank: z.string().trim().max(80), accountNumber: z.string().trim().max(40), iban: z.string().trim().max(40), branch: z.string().trim().max(80) }),
   payment_instructions: z.string().max(1000),
   ai: z.object({ provider: z.enum(['anthropic', 'openai']), apiKey: z.string().max(400).optional(), model: z.string().max(100), baseUrl: z.string().max(200).refine((v) => !v || /^https:\/\//.test(v), 'Base URL must start with https://'), enabled: z.boolean() }).partial(),
   ai_daily_limit: z.number().int().min(0).max(1000),
