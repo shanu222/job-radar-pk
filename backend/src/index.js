@@ -43,7 +43,16 @@ app.use((err, _req, res, _next) => {
   res.status(err.status || 500).json({ error: err.message?.startsWith('CORS') ? err.message : 'Something went wrong' });
 });
 
-await migrate();
+if (!config.databaseUrl) {
+  console.error('DATABASE_URL is not set. On Railway: add a PostgreSQL database and set DATABASE_URL=${{Postgres.DATABASE_URL}} on this service.');
+  process.exit(1);
+}
+try {
+  await migrate();
+} catch (e) {
+  console.error('Could not connect to the database / create tables:', e.message);
+  process.exit(1);
+}
 app.listen(config.port, () => console.log(`JobRadar API on :${config.port}`));
 
 cron.schedule(config.ingestCron, () => runIngest().catch((e) => console.error('[cron ingest]', e)));
