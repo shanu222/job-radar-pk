@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
-import { X, Check } from 'lucide-react';
+import { X, Check, KeyRound } from 'lucide-react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import RequireAuth from '@/components/RequireAuth';
@@ -25,6 +26,30 @@ function ChipInput({ value, onChange, placeholder }) {
 
 const CATS = [['govt', 'Government'], ['private', 'Private & NGO'], ['remote', 'International remote'], ['freelance', 'Freelance / gigs']];
 
+function PasswordForm() {
+  const { user, signIn } = useAuth();
+  const [f, setF] = useState({ current: '', next: '' });
+  const [msg, setMsg] = useState(null);
+  const submit = async (e) => {
+    e.preventDefault(); setMsg(null);
+    try {
+      const { token, user: u } = await api('/api/auth/password', { method: 'POST', body: user.has_password ? f : { next: f.next } });
+      signIn(token, u); setF({ current: '', next: '' }); setMsg({ ok: 'Password updated. Other devices have been signed out.' });
+    } catch (err) { setMsg({ err: err.message }); }
+  };
+  return (
+    <form onSubmit={submit} className="card mt-6 space-y-4 p-6 sm:p-8">
+      <h2 className="flex items-center gap-2 font-display text-lg font-bold"><KeyRound size={18} /> {user.has_password ? 'Change password' : 'Set a password'}</h2>
+      {!user.has_password && <p className="text-sm text-ink-soft">You sign in with Google. Set a password if you also want to sign in with email.</p>}
+      {user.has_password && <input type="password" className="input" placeholder="Current password" required autoComplete="current-password" value={f.current} onChange={(e) => setF({ ...f, current: e.target.value })} />}
+      <input type="password" className="input" placeholder="New password (8+ characters, letters and numbers)" required minLength={8} maxLength={128} autoComplete="new-password" value={f.next} onChange={(e) => setF({ ...f, next: e.target.value })} />
+      {msg?.err && <p className="rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{msg.err}</p>}
+      {msg?.ok && <p className="rounded-lg bg-brand-tint px-3 py-2 text-sm text-brand-dark">{msg.ok}</p>}
+      <button className="btn-ghost">Update password</button>
+    </form>
+  );
+}
+
 function Profile() {
   const { user, setUser } = useAuth();
   const [p, setP] = useState({
@@ -45,7 +70,7 @@ function Profile() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <h1 className="font-display text-3xl font-bold">Profile & alerts</h1>
-      <p className="mb-8 mt-1 text-ink-soft">{user.email}</p>
+      <p className="mb-8 mt-1 text-ink-soft">{user.email}{user.google ? ' · Google account' : ''} · {user.access?.active ? <Link href="/billing" className="font-semibold text-brand">Pro active</Link> : <Link href="/billing" className="font-semibold text-brand">Upgrade to Pro</Link>}</p>
       <div className="mb-8"><CvUpload compact onDone={(u) => setP((x) => ({ ...x, skills: u.skills, titles: u.titles, experience_years: u.experience_years ?? '' }))} /></div>
       <form onSubmit={save} className="card space-y-6 p-6 sm:p-8">
         <label className="block"><span className="label">Name</span><input className="input mt-2" value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} /></label>
@@ -72,6 +97,7 @@ function Profile() {
         {error && <p className="rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
         <button className="btn-primary">{saved ? <><Check size={16} /> Saved</> : 'Save changes'}</button>
       </form>
+      <PasswordForm />
     </div>
   );
 }

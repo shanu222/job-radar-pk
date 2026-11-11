@@ -6,6 +6,7 @@ import { api, qs } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import RequireAuth from '@/components/RequireAuth';
 import CvUpload from '@/components/CvUpload';
+import Paywall from '@/components/Paywall';
 import JobCard, { JobSkeleton } from '@/components/JobCard';
 
 const TABS = [['', 'All matches'], ['govt', 'Government'], ['private', 'Private & NGO'], ['remote', 'Remote'], ['freelance', 'Gigs']];
@@ -21,7 +22,7 @@ function Matches() {
     setData(null);
     api(`/api/me/matches?${qs({ category, closing: closing ? 14 : '' })}`).then(setData).catch(() => setData({ jobs: [] }));
   }, [category, closing]);
-  useEffect(() => { if (user?.has_cv || user?.skills?.length) load(); }, [load, user]);
+  useEffect(() => { if (user?.access?.active && (user?.has_cv || user?.skills?.length)) load(); }, [load, user]);
 
   // After a CV upload the server searches Google Jobs (LinkedIn, Indeed, Rozee…) with this CV's
   // job titles in the background; refresh the list a couple of times while that finishes.
@@ -31,6 +32,8 @@ function Matches() {
     setTimeout(load, 20000);
     setTimeout(() => { load(); setSearching(false); }, 45000);
   };
+
+  if (!user.access?.active) return <Paywall reason={user.access?.reason} />;
 
   if (!user.has_cv && !user.skills?.length) return (
     <div className="mx-auto max-w-2xl px-4 py-16">

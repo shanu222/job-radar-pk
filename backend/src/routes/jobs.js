@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db.js';
-import { optionalAuth } from '../auth.js';
+import { optionalAuth, accessFor } from '../auth.js';
 import { scoreJob } from '../lib/match.js';
 import { ALL_SOURCES } from '../sources/index.js';
 import { creditsUsed, plannedSearches } from '../sources/jsearch.js';
@@ -37,8 +37,9 @@ r.get('/jobs', optionalAuth, async (req, res) => {
     query(`SELECT ${LIST_COLS}, left(description, 3000) AS _desc FROM jobs WHERE ${w} ORDER BY ${order} LIMIT ${size} OFFSET ${(page - 1) * size}`, params),
     query(`SELECT count(*)::int FROM jobs WHERE ${w}`, params),
   ]);
+  const scoring = req.user?.skills?.length && (await accessFor(req.user)).active;
   const jobs = rows.map(({ _desc, ...j }) =>
-    req.user?.skills?.length ? { ...j, ...scoreJob({ ...j, description: _desc }, req.user) } : j
+    scoring ? { ...j, ...scoreJob({ ...j, description: _desc }, req.user) } : j
   );
   res.json({ jobs, total: count, page, pages: Math.ceil(count / size) });
 });
@@ -80,7 +81,8 @@ r.get('/jobs/:id', optionalAuth, async (req, res) => {
   const { rows } = await query(`SELECT *, (deadline - CURRENT_DATE) AS days_left FROM jobs WHERE id = $1`, [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Job not found' });
   const { search, ...job } = rows[0];
-  res.json({ job: req.user?.skills?.length ? { ...job, ...scoreJob(job, req.user) } : job });
+  const scoring = req.user?.skills?.length && (await accessFor(req.user)).active;
+  res.json({ job: scoring ? { ...job, ...scoreJob(job, req.user) } : job });
 });
 
 r.get('/sources', async (_req, res) => {

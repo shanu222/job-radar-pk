@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Radar, Menu, X, LogOut } from 'lucide-react';
+import { Radar, Menu, X, LogOut, Shield, Sparkles } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 
 const LINKS = [
@@ -34,6 +34,8 @@ export default function Navbar() {
         <div className="hidden items-center gap-2 md:flex">
           {ready && (user ? (
             <>
+              {user.role === 'admin' && <Link href="/admin" className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold ${path.startsWith('/admin') ? 'bg-ink text-white' : 'text-ink hover:bg-white'}`}><Shield size={15} />Admin</Link>}
+              {!user.access?.active && <Link href="/billing" className="chip bg-mint px-3 py-1.5 text-sm font-semibold text-ink hover:bg-brand hover:text-white"><Sparkles size={13} />Upgrade</Link>}
               <Link href="/profile" className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-medium hover:bg-white">
                 <span className="grid h-7 w-7 place-items-center rounded-full bg-brand text-xs font-bold text-white">{(user.name || user.email)[0].toUpperCase()}</span>
                 {user.name?.split(' ')[0] || 'Profile'}
@@ -43,7 +45,7 @@ export default function Navbar() {
           ) : (
             <>
               <Link href="/login" className="btn-ghost">Sign in</Link>
-              <Link href="/register" className="btn-primary">Upload CV — free</Link>
+              <Link href="/register" className="btn-primary">Get started</Link>
             </>
           ))}
         </div>
@@ -51,7 +53,7 @@ export default function Navbar() {
       </nav>
       {open && (
         <div className="border-t border-line bg-paper px-4 py-3 md:hidden" onClick={() => setOpen(false)}>
-          {[...LINKS, ...(user ? [['/profile', 'Profile & CV']] : [['/login', 'Sign in'], ['/register', 'Create account']])].map(([href, label]) => (
+          {[...LINKS, ...(user ? [['/profile', 'Profile & CV'], ['/billing', user.access?.active ? 'Billing' : 'Upgrade to Pro'], ...(user.role === 'admin' ? [['/admin', 'Admin panel']] : [])] : [['/login', 'Sign in'], ['/register', 'Create account']])].map(([href, label]) => (
             <Link key={href} href={href} className="block rounded-lg px-3 py-2.5 font-medium hover:bg-white">{label}</Link>
           ))}
           {user && <button onClick={signOut} className="block w-full rounded-lg px-3 py-2.5 text-left font-medium text-danger">Sign out</button>}

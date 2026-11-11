@@ -13,13 +13,15 @@ export function AuthProvider({ children }) {
     try { const { jobs } = await api('/api/me/saved'); setSavedIds(new Set(jobs.map((j) => j.id))); } catch { /* signed out */ }
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try { const { user } = await api('/api/auth/me'); setUser(user); return user; }
+    catch { localStorage.removeItem('jr_token'); setUser(null); return null; }
+  }, []);
+
   useEffect(() => {
     if (!localStorage.getItem('jr_token')) { setReady(true); return; }
-    api('/api/auth/me')
-      .then(({ user }) => { setUser(user); refreshSaved(); })
-      .catch(() => localStorage.removeItem('jr_token'))
-      .finally(() => setReady(true));
-  }, [refreshSaved]);
+    refreshUser().then((u) => u && refreshSaved()).finally(() => setReady(true));
+  }, [refreshSaved, refreshUser]);
 
   const signIn = (token, u) => { localStorage.setItem('jr_token', token); setUser(u); refreshSaved(); };
   const signOut = () => { localStorage.removeItem('jr_token'); setUser(null); setSavedIds(new Set()); };
@@ -31,7 +33,7 @@ export function AuthProvider({ children }) {
     catch { refreshSaved(); }
   };
 
-  return <Ctx.Provider value={{ user, setUser, ready, signIn, signOut, savedIds, toggleSave }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, setUser, refreshUser, ready, signIn, signOut, savedIds, toggleSave }}>{children}</Ctx.Provider>;
 }
 
 export const useAuth = () => useContext(Ctx);

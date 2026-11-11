@@ -5,6 +5,7 @@ import { ArrowLeft, Building2, MapPin, CalendarDays, ExternalLink, Bookmark, Boo
 import { api, CATEGORY, SOURCE_LABEL, fmtDate, timeAgo } from '@/lib/api';
 import { DeadlineBadge, MatchRing } from '@/components/JobCard';
 import { useAuth } from '@/components/AuthProvider';
+import AiTools from '@/components/AiTools';
 
 export default function JobDetail({ params }) {
   const { id } = use(params);
@@ -60,6 +61,7 @@ export default function JobDetail({ params }) {
             ) : (
               <Link href="/register" className="btn-ghost mt-2 w-full">Sign up to get a reminder</Link>
             )}
+            <AiTools jobId={job.id} />
             {job.missingSkills?.length > 0 && (
               <div className="mt-5">
                 <p className="label mb-2">Skills to highlight or learn</p>

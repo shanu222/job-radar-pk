@@ -16,6 +16,14 @@ One place for **every job in Pakistan and international remote work** — govern
 | 📋 **Application tracker** | Save jobs, move them through To apply → Applied → Interview → Offer, and subscribe to a calendar (.ics) feed of your deadlines with 2-day alarms |
 | 📱 **Responsive** | Works on phones; filters open as a bottom sheet |
 
+## Accounts, Pro plan & admin
+
+- **Free:** browse/search all jobs, deadlines, save jobs, saved-job deadline reminders.
+- **Pro (Rs 1,000 / 30 days by default):** CV upload & matching, CV-based LinkedIn/Indeed searches, AI fit check & cover letters, match alert emails.
+- **Payment:** user sends money to the Easypaisa/JazzCash number shown on `/billing`, then submits the Transaction ID + sender number + screenshot. The admin gets an email (with the screenshot attached), verifies the TID in their wallet app and approves in **Admin → Payments**. Approval adds the plan days and emails the user. Each TID can only be used once.
+- **Admin panel (`/admin`):** overview, payment review, users (make free, add days, suspend, make admin, delete), settings (free-for-everyone switch, price, days, payment accounts, AI provider/key/model, Resend email), jobs data, audit log of every admin action.
+- **Sign-in:** email + password, or Google via Firebase Authentication.
+
 ## Job sources
 
 | Source | Covers | Key needed? | Deadlines |

@@ -2,6 +2,7 @@ import { query } from '../db.js';
 import { config } from '../config.js';
 import { sendMail, renderDigest } from '../lib/email.js';
 import { matchJobsForUser } from './matching.js';
+import { accessFor } from '../auth.js';
 
 /**
  * Daily email per user:
@@ -12,7 +13,7 @@ import { matchJobsForUser } from './matching.js';
  */
 export async function runReminders() {
   const today = new Date().toISOString().slice(0, 10);
-  const { rows: users } = await query(`SELECT * FROM users WHERE email_alerts = TRUE`);
+  const { rows: users } = await query(`SELECT * FROM users WHERE email_alerts = TRUE AND NOT disabled`);
   let sent = 0;
   for (const u of users) {
     try {
@@ -20,8 +21,10 @@ export async function runReminders() {
         `SELECT j.*, (j.deadline - CURRENT_DATE) AS days_left FROM saved_jobs s JOIN jobs j ON j.id = s.job_id
           WHERE s.user_id = $1 AND s.status = 'saved' AND j.deadline BETWEEN CURRENT_DATE AND CURRENT_DATE + $2::int
           ORDER BY j.deadline`, [u.id, config.reminderDaysAhead]);
-      const matchClosing = await matchJobsForUser(u, { deadlineWithinDays: config.reminderDaysAhead, minScore: 55, limit: 10 });
-      const newMatches = await matchJobsForUser(u, { sinceHours: 26, minScore: 55, limit: 10 });
+      // CV-match alerts are part of the paid plan; saved-job deadline reminders are free for everyone
+      const paid = (await accessFor(u)).active;
+      const matchClosing = paid ? await matchJobsForUser(u, { deadlineWithinDays: config.reminderDaysAhead, minScore: 55, limit: 10 }) : [];
+      const newMatches = paid ? await matchJobsForUser(u, { sinceHours: 26, minScore: 55, limit: 10 }) : [];
 
       const already = new Set((await query(`SELECT job_id, kind FROM reminders_sent WHERE user_id = $1`, [u.id])).rows.map((r) => `${r.job_id}:${r.kind}`));
       const closingKind = (j) => `deadline-${j.days_left <= 1 ? '1d' : 'soon'}`;

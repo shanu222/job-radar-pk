@@ -90,3 +90,65 @@ CREATE TABLE IF NOT EXISTS ingest_runs (
   error TEXT,
   ran_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- ── Accounts, roles, subscriptions ─────────────────────────────────────────
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user';      -- user | admin
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_free BOOLEAN NOT NULL DEFAULT FALSE;  -- admin granted free access
+ALTER TABLE users ADD COLUMN IF NOT EXISTS paid_until TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_uid TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INT NOT NULL DEFAULT 0;     -- bump to log a user out everywhere
+ALTER TABLE users ADD COLUMN IF NOT EXISTS disabled BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMPTZ;
+CREATE UNIQUE INDEX IF NOT EXISTS users_google_uid_idx ON users (google_uid) WHERE google_uid IS NOT NULL;
+
+-- Admin-editable settings (price, payment accounts, AI key, email…). Secrets never leave the server unmasked.
+CREATE TABLE IF NOT EXISTS settings (
+  key        TEXT PRIMARY KEY,
+  value      JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id            SERIAL PRIMARY KEY,
+  user_id       INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  method        TEXT NOT NULL CHECK (method IN ('easypaisa','jazzcash')),
+  amount        INT NOT NULL,
+  txn_id        TEXT NOT NULL,
+  sender_number TEXT,
+  screenshot    BYTEA NOT NULL,
+  screenshot_mime TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  admin_note    TEXT,
+  days_granted  INT,
+  reviewed_by   INT REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at   TIMESTAMPTZ,
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+-- The same transaction ID can never be used twice (stops re-using one payment for many accounts)
+CREATE UNIQUE INDEX IF NOT EXISTS payments_txn_idx ON payments (method, upper(txn_id));
+CREATE INDEX IF NOT EXISTS payments_status_idx ON payments (status, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS audit_log (
+  id SERIAL PRIMARY KEY,
+  admin_id INT REFERENCES users(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  target TEXT,
+  detail JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- AI results are cached so the same insight isn't paid for twice
+CREATE TABLE IF NOT EXISTS ai_cache (
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  job_id  INT REFERENCES jobs(id) ON DELETE CASCADE,
+  kind    TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (user_id, job_id, kind)
+);
+CREATE TABLE IF NOT EXISTS ai_usage (
+  user_id INT REFERENCES users(id) ON DELETE CASCADE,
+  day DATE NOT NULL DEFAULT CURRENT_DATE,
+  calls INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, day)
+);

@@ -21,7 +21,7 @@ export default function CvUpload({ onDone, compact }) {
       const { user, searching } = await api('/api/me/cv', { method: 'POST', form });
       setUser(user);
       onDone?.(user, searching);
-    } catch (e) { setError(e.message); } finally { setBusy(false); }
+    } catch (e) { setError(e.status === 402 ? 'PAYWALL' : e.message); } finally { setBusy(false); }
   }
 
   return (
@@ -35,7 +35,9 @@ export default function CvUpload({ onDone, compact }) {
         <p className="mt-1 text-sm text-ink-soft">PDF, DOCX or TXT · up to 5 MB</p>
       </button>
       <input ref={input} type="file" accept=".pdf,.docx,.txt" hidden onChange={(e) => upload(e.target.files[0])} />
-      {error && <p className="mt-3 rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
+      {error === 'PAYWALL'
+        ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">CV matching is part of Pro. <a href="/billing" className="font-semibold underline">Upgrade with Easypaisa or JazzCash</a></p>
+        : error && <p className="mt-3 rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
     </div>
   );
 }
