@@ -162,3 +162,10 @@ CREATE TABLE IF NOT EXISTS account_deletion_codes (
   expires_at TIMESTAMPTZ NOT NULL,
   attempts   INT NOT NULL DEFAULT 0
 );
+
+-- ── Eligibility ─────────────────────────────────────────────────────────────
+ALTER TABLE users ADD COLUMN IF NOT EXISTS country TEXT;        -- ISO-2, e.g. PK
+ALTER TABLE users ADD COLUMN IF NOT EXISTS domicile TEXT;       -- punjab | sindh | kp | balochistan | ict | gb | ajk | merged
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS eligible TEXT[] NOT NULL DEFAULT '{}';   -- who may apply (see lib/eligibility.js)
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS domiciles TEXT[] NOT NULL DEFAULT '{}';  -- govt jobs: provinces allowed
+CREATE INDEX IF NOT EXISTS jobs_eligible_idx ON jobs USING GIN (eligible);

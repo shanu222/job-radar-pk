@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { optionalAuth, accessFor } from '../auth.js';
 import { scoreJob } from '../lib/match.js';
+import { eligibilitySql, userTokens } from '../lib/eligibility.js';
 import { ALL_SOURCES } from '../sources/index.js';
 import { creditsUsed, plannedSearches } from '../sources/jsearch.js';
 
 const r = Router();
-const LIST_COLS = `id, source, title, company, location, country, category, is_remote, tags, salary, url, posted_at, deadline,
+const LIST_COLS = `id, source, title, company, location, country, category, is_remote, tags, salary, url, posted_at, deadline, eligible, domiciles,
   left(description, 280) AS snippet, (deadline - CURRENT_DATE) AS days_left`;
 
 /** GET /api/jobs — search + filters + pagination */
@@ -25,6 +26,8 @@ r.get('/jobs', optionalAuth, async (req, res) => {
   if (source) where.push(`source = ANY(${add(String(source).split(','))})`);
   if (deadline === 'has') where.push('deadline IS NOT NULL');
   if (/^\d+$/.test(deadline || '')) where.push(`deadline IS NOT NULL AND deadline <= CURRENT_DATE + ${add(Number(deadline))}::int`);
+  // Default: only jobs the visitor can really apply for (Pakistan unless their profile says otherwise)
+  if (req.query.eligible !== 'all') where.push(eligibilitySql(params, { country: req.user?.country || 'PK', domicile: req.user?.domicile }));
 
   const order = {
     newest: 'COALESCE(posted_at, created_at) DESC',
@@ -54,7 +57,7 @@ r.get('/jobs/stats', async (_req, res) => {
       count(*) FILTER (WHERE country = 'PK')::int AS pakistan,
       count(*) FILTER (WHERE deadline BETWEEN CURRENT_DATE AND CURRENT_DATE + 7)::int AS closing_week,
       count(*) FILTER (WHERE created_at > now() - interval '24 hours')::int AS new_today
-    FROM jobs WHERE deadline IS NULL OR deadline >= CURRENT_DATE`);
+    FROM jobs WHERE (deadline IS NULL OR deadline >= CURRENT_DATE) AND eligible && $1::text[]`, [userTokens('PK')]);
   const { rows: bySource } = await query(`SELECT source, count(*)::int AS n FROM jobs GROUP BY source ORDER BY n DESC`);
   res.json({ ...s, bySource });
 });
@@ -66,6 +69,7 @@ r.get('/deadlines', optionalAuth, async (req, res) => {
   let extra = '';
   if (req.query.category) { params.push(String(req.query.category).split(',')); extra += ` AND category = ANY($${params.length})`; }
   if (req.query.country) { params.push(req.query.country); extra += ` AND country = $${params.length}`; }
+  if (req.query.eligible !== 'all') extra += ` AND ${eligibilitySql(params, { country: req.user?.country || 'PK', domicile: req.user?.domicile })}`;
   const { rows } = await query(
     `SELECT ${LIST_COLS} FROM jobs WHERE deadline BETWEEN CURRENT_DATE AND CURRENT_DATE + $1::int ${extra}
      ORDER BY deadline, title LIMIT 600`, params);

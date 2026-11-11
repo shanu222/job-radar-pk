@@ -103,7 +103,7 @@ export const pkgov = {
         const html = await getText(site.url, { headers: { 'user-agent': config.userAgent } });
         const jobs = parseListing(html, site);
         console.log(`[pkgov] ${site.id}: ${jobs.length} rows`);
-        all.push(...jobs.map((j) => ({ ...j, _site: site.id })));
+        all.push(...jobs.map((j) => ({ ...j, _site: site.id, site_domicile: site.domicile })));
       } catch (e) {
         console.warn(`[pkgov] ${site.id}: ${e.message}`);
       }

@@ -24,6 +24,13 @@ One place for **every job in Pakistan and international remote work** — govern
 - **Admin panel (`/admin`):** overview, payment review, users (make free, add days, suspend, make admin, delete), settings (free-for-everyone switch, price, days, payment accounts, AI provider/key/model, Resend email), jobs data, audit log of every admin action.
 - **Sign-in:** email + password, or Google via Firebase Authentication.
 
+## Real jobs only: eligibility
+
+Every job is tagged with who can actually apply, and by default people only see those jobs (a toggle on Browse shows everything):
+- **Country:** chosen at sign-up (Google sign-ups are asked once). Pakistani jobs are shown to Pakistan-based users; international remote jobs only if open worldwide, to the user's region (e.g. Asia/APAC), or to a time-zone range that includes theirs. Jobs limited to "USA only", "EU only", etc. are hidden. On-site jobs abroad appear only when the ad offers visa sponsorship/relocation.
+- **Domicile (government jobs):** read from the ad ("domicile of Punjab", "all Pakistan basis", provincial quotas) and the commission (PPSC → Punjab, SPSC → Sindh, KPPSC/ETEA → KP, BPSC → Balochistan). Federal ads with no domicile stated are shown to everyone.
+- Rules live in `backend/src/lib/eligibility.js` and are covered by tests.
+
 ## Job sources
 
 | Source | Covers | Key needed? | Deadlines |

@@ -1,13 +1,85 @@
 [
-  { "id": "fpsc",   "org": "Federal Public Service Commission (FPSC)",        "location": "Pakistan (Federal)", "url": "https://www.fpsc.gov.pk/jobs", "category": "govt" },
-  { "id": "ppsc",   "org": "Punjab Public Service Commission (PPSC)",          "location": "Punjab",             "url": "https://www.ppsc.gop.pk/Jobs.aspx", "category": "govt" },
-  { "id": "kppsc",  "org": "Khyber Pakhtunkhwa Public Service Commission",     "location": "Khyber Pakhtunkhwa", "url": "https://www.kppsc.gov.pk/advertisements", "category": "govt" },
-  { "id": "spsc",   "org": "Sindh Public Service Commission (SPSC)",           "location": "Sindh",              "url": "https://spsc.gos.pk/advertisements", "category": "govt" },
-  { "id": "bpsc",   "org": "Balochistan Public Service Commission (BPSC)",     "location": "Balochistan",        "url": "https://www.bpsc.gob.pk/advertisement.html", "category": "govt" },
-  { "id": "nts",    "org": "National Testing Service (NTS)",                    "location": "Pakistan",           "url": "https://www.nts.org.pk/new/", "category": "govt" },
-  { "id": "pts",    "org": "Pakistan Testing Service (PTS)",                    "location": "Pakistan",           "url": "https://www.pts.org.pk/", "category": "govt" },
-  { "id": "ots",    "org": "Open Testing Service (OTS)",                        "location": "Pakistan",           "url": "https://ots.org.pk/", "category": "govt" },
-  { "id": "etea",   "org": "ETEA Khyber Pakhtunkhwa",                           "location": "Khyber Pakhtunkhwa", "url": "https://etea.edu.pk/", "category": "govt" },
-  { "id": "njp",    "org": "National Job Portal (Govt of Pakistan)",            "location": "Pakistan",           "url": "https://njp.gov.pk/", "category": "govt" },
-  { "id": "jobzpk", "org": "Newspaper ads (Jobz.pk)",                           "location": "Pakistan",           "url": "https://www.jobz.pk/govt-jobs/", "category": "govt", "aggregator": true }
+  {
+    "id": "fpsc",
+    "org": "Federal Public Service Commission (FPSC)",
+    "location": "Pakistan (Federal)",
+    "url": "https://www.fpsc.gov.pk/jobs",
+    "category": "govt"
+  },
+  {
+    "id": "ppsc",
+    "org": "Punjab Public Service Commission (PPSC)",
+    "location": "Punjab",
+    "url": "https://www.ppsc.gop.pk/Jobs.aspx",
+    "category": "govt",
+    "domicile": "punjab"
+  },
+  {
+    "id": "kppsc",
+    "org": "Khyber Pakhtunkhwa Public Service Commission",
+    "location": "Khyber Pakhtunkhwa",
+    "url": "https://www.kppsc.gov.pk/advertisements",
+    "category": "govt",
+    "domicile": "kp"
+  },
+  {
+    "id": "spsc",
+    "org": "Sindh Public Service Commission (SPSC)",
+    "location": "Sindh",
+    "url": "https://spsc.gos.pk/advertisements",
+    "category": "govt",
+    "domicile": "sindh"
+  },
+  {
+    "id": "bpsc",
+    "org": "Balochistan Public Service Commission (BPSC)",
+    "location": "Balochistan",
+    "url": "https://www.bpsc.gob.pk/advertisement.html",
+    "category": "govt",
+    "domicile": "balochistan"
+  },
+  {
+    "id": "nts",
+    "org": "National Testing Service (NTS)",
+    "location": "Pakistan",
+    "url": "https://www.nts.org.pk/new/",
+    "category": "govt"
+  },
+  {
+    "id": "pts",
+    "org": "Pakistan Testing Service (PTS)",
+    "location": "Pakistan",
+    "url": "https://www.pts.org.pk/",
+    "category": "govt"
+  },
+  {
+    "id": "ots",
+    "org": "Open Testing Service (OTS)",
+    "location": "Pakistan",
+    "url": "https://ots.org.pk/",
+    "category": "govt"
+  },
+  {
+    "id": "etea",
+    "org": "ETEA Khyber Pakhtunkhwa",
+    "location": "Khyber Pakhtunkhwa",
+    "url": "https://etea.edu.pk/",
+    "category": "govt",
+    "domicile": "kp"
+  },
+  {
+    "id": "njp",
+    "org": "National Job Portal (Govt of Pakistan)",
+    "location": "Pakistan",
+    "url": "https://njp.gov.pk/",
+    "category": "govt"
+  },
+  {
+    "id": "jobzpk",
+    "org": "Newspaper ads (Jobz.pk)",
+    "location": "Pakistan",
+    "url": "https://www.jobz.pk/govt-jobs/",
+    "category": "govt",
+    "aggregator": true
+  }
 ]

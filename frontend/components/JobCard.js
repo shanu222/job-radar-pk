@@ -4,6 +4,7 @@ import { Bookmark, BookmarkCheck, MapPin, Building2, ExternalLink, Globe2 } from
 import { CATEGORY, SOURCE_LABEL, timeAgo } from '@/lib/api';
 import { useAuth } from './AuthProvider';
 import { useRouter } from 'next/navigation';
+import { eligibilityLabel } from '@/lib/places';
 
 export function DeadlineBadge({ deadline, daysLeft, compact }) {
   if (!deadline) return compact ? null : <span className="chip bg-paper text-ink-soft">Open until filled</span>;
@@ -46,6 +47,7 @@ export default function JobCard({ job, index = 0 }) {
             <span className={`chip ${cat.cls}`}>{cat.label}</span>
             {job.is_remote && job.category !== 'remote' && <span className="chip bg-violet-50 text-violet-800"><Globe2 size={11} />Remote</span>}
             {job.country === 'PK' && <span className="chip bg-paper text-ink-soft">🇵🇰 Pakistan</span>}
+            {eligibilityLabel(job) && <span className="chip border border-brand/25 text-brand-dark">{eligibilityLabel(job)}</span>}
             <DeadlineBadge deadline={job.deadline} daysLeft={job.days_left} compact />
           </div>
           <Link href={`/jobs/${job.id}`} className="font-display text-[17px] font-semibold leading-snug text-ink after:absolute after:inset-0 group-hover:text-brand">

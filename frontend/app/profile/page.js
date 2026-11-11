@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { X, Check, KeyRound, Trash2, MailCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { COUNTRIES, PROVINCES } from '@/lib/places';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
@@ -99,6 +100,7 @@ function Profile() {
   const [p, setP] = useState({
     name: user.name || '', skills: user.skills || [], titles: user.titles || [], experience_years: user.experience_years ?? '',
     pref_locations: user.pref_locations || [], pref_categories: user.pref_categories || [], email_alerts: user.email_alerts,
+    country: user.country || 'PK', domicile: user.domicile || '',
   });
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
@@ -106,7 +108,7 @@ function Profile() {
   const save = async (e) => {
     e.preventDefault(); setError('');
     try {
-      const { user } = await api('/api/auth/me', { method: 'PATCH', body: { ...p, experience_years: p.experience_years === '' ? null : Number(p.experience_years) } });
+      const { user } = await api('/api/auth/me', { method: 'PATCH', body: { ...p, experience_years: p.experience_years === '' ? null : Number(p.experience_years), domicile: p.country === 'PK' ? (p.domicile || undefined) : null } });
       setUser(user); setSaved(true); setTimeout(() => setSaved(false), 2000);
     } catch (err) { setError(err.message); }
   };
@@ -118,6 +120,19 @@ function Profile() {
       <div className="mb-8"><CvUpload compact onDone={(u) => setP((x) => ({ ...x, skills: u.skills, titles: u.titles, experience_years: u.experience_years ?? '' }))} /></div>
       <form onSubmit={save} className="card space-y-6 p-6 sm:p-8">
         <label className="block"><span className="label">Name</span><input className="input mt-2" value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} /></label>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="block"><span className="label">Country</span>
+            <select className="input mt-2" value={p.country} onChange={(e) => setP({ ...p, country: e.target.value })}>
+              {COUNTRIES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+            </select></label>
+          {p.country === 'PK' && (
+            <label className="block"><span className="label">Domicile</span>
+              <select className="input mt-2" required value={p.domicile} onChange={(e) => setP({ ...p, domicile: e.target.value })}>
+                <option value="" disabled>Select province</option>
+                {PROVINCES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+              </select></label>
+          )}
+        </div>
         <div><span className="label">Skills</span><p className="mb-2 text-xs text-ink-soft">Read from your CV — add or remove to fine-tune your matches.</p>
           <ChipInput value={p.skills} onChange={(skills) => setP({ ...p, skills })} placeholder="Add a skill and press Enter" /></div>
         <div><span className="label">Job titles you want</span>

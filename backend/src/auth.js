@@ -77,6 +77,7 @@ export const userView = async (u) => ({
   id: u.id, email: u.email, name: u.name, role: u.role, skills: u.skills, titles: u.titles,
   experience_years: u.experience_years, pref_locations: u.pref_locations, pref_categories: u.pref_categories,
   email_alerts: u.email_alerts, has_cv: !!u.cv_text, google: !!u.google_uid, has_password: !String(u.password_hash || '').startsWith('!'),
+  country: u.country || null, domicile: u.domicile || null,
   is_free: u.is_free, paid_until: u.paid_until, access: await accessFor(u),
 });
 

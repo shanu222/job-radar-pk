@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { query } from '../db.js';
 import { signToken, requireAuth, userView } from '../auth.js';
 import { verifyFirebaseIdToken, firebaseEnabled } from '../lib/firebase.js';
+import { COUNTRIES, PROVINCES } from '../lib/eligibility.js';
 import { searchForUser } from '../jobs/personalSearch.js';
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import { config } from '../config.js';
@@ -19,18 +20,22 @@ const signupLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 5, standardHeade
 const password = z.string().min(8, 'Password must be at least 8 characters').max(128)
   .refine((p) => /[A-Za-z]/.test(p) && /\d/.test(p), 'Password must contain letters and numbers');
 const email = z.string().trim().toLowerCase().email('Enter a valid email').max(200);
+const country = z.string().refine((c) => c in COUNTRIES, 'Choose your country');
+const domicile = z.string().refine((d) => d in PROVINCES, 'Choose your domicile province');
 
 // A real bcrypt hash of a random string, used so failed logins take the same time whether or not the email exists
 const DUMMY_HASH = bcrypt.hashSync(String(Math.random()), 11);
 
 r.post('/register', signupLimiter, async (req, res) => {
-  const p = z.object({ email, password, name: z.string().trim().max(100).optional() }).safeParse(req.body);
+  const p = z.object({ email, password, name: z.string().trim().max(100).optional(), country, domicile: domicile.optional() })
+    .refine((d) => d.country !== 'PK' || d.domicile, { message: 'Choose your domicile province (needed for government jobs)' })
+    .safeParse(req.body);
   if (!p.success) return res.status(400).json({ error: p.error.issues[0].message });
-  const { email: em, password: pw, name } = p.data;
+  const { email: em, password: pw, name, country: ctry, domicile: dom } = p.data;
   const exists = await query('SELECT 1 FROM users WHERE email = $1', [em]);
   if (exists.rowCount) return res.status(409).json({ error: 'An account with this email already exists. Sign in instead.' });
   const hash = await bcrypt.hash(pw, 11);
-  const { rows } = await query('INSERT INTO users (email, name, password_hash, last_login) VALUES ($1,$2,$3, now()) RETURNING *', [em, name || null, hash]);
+  const { rows } = await query('INSERT INTO users (email, name, password_hash, country, domicile, last_login) VALUES ($1,$2,$3,$4,$5, now()) RETURNING *', [em, name || null, hash, ctry, ctry === 'PK' ? dom : null]);
   res.json({ token: signToken(rows[0]), user: await userView(rows[0]) });
 });
 
@@ -87,11 +92,15 @@ const prefs = z.object({
   pref_locations: z.array(z.string().max(60)).max(20).optional(),
   pref_categories: z.array(z.enum(['govt', 'private', 'remote', 'freelance'])).optional(),
   email_alerts: z.boolean().optional(),
+  country: country.optional(),
+  domicile: domicile.nullable().optional(),
 }).strict();
 
 r.patch('/me', requireAuth, async (req, res) => {
   const p = prefs.safeParse(req.body);
   if (!p.success) return res.status(400).json({ error: p.error.issues[0].message });
+  if (p.data.country && p.data.country !== 'PK') p.data.domicile = null; // domicile only applies to Pakistanis
+  if (p.data.country === 'PK' && !p.data.domicile && !req.user.domicile) return res.status(400).json({ error: 'Choose your domicile province (needed for government jobs)' });
   const fields = Object.entries(p.data);
   if (!fields.length) return res.json({ user: await userView(req.user) });
   // Column names come only from the zod schema keys above — never from user input

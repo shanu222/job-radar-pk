@@ -4,6 +4,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { api, qs, SOURCE_LABEL } from '@/lib/api';
 import JobCard, { JobSkeleton } from '@/components/JobCard';
+import { useAuth } from '@/components/AuthProvider';
+import { COUNTRY_NAME, PROVINCE_NAME } from '@/lib/places';
 
 const CATEGORIES = [['', 'All'], ['govt', 'Government'], ['private', 'Private & NGO'], ['remote', 'Remote'], ['freelance', 'Reddit / gigs']];
 const COUNTRIES = [['', 'Anywhere'], ['PK', 'Pakistan'], ['INTL', 'International']];
@@ -28,6 +30,8 @@ function JobsInner() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const { user } = useAuth();
+  const who = `${COUNTRY_NAME[user?.country || 'PK']}${user?.domicile ? ` · ${PROVINCE_NAME[user.domicile]} domicile` : ''}`;
 
   const set = (patch) => router.push(`/jobs?${qs({ ...f, page: undefined, ...patch })}`, { scroll: false });
 
@@ -35,14 +39,18 @@ function JobsInner() {
     setData(null); setError('');
     api(`/api/jobs?${qs({ ...f, size: 20 })}`).then(setData).catch((e) => setError(e.message));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sp.toString()]);
+  }, [sp.toString(), user?.country, user?.domicile]);
 
-  const activeCount = ['category', 'country', 'remote', 'deadline', 'source'].filter((k) => f[k]).length;
+  const activeCount = ['category', 'country', 'remote', 'deadline', 'source', 'eligible'].filter((k) => f[k]).length;
 
   const filters = (
     <div className="space-y-6">
       <div><p className="label mb-2">Type</p><Pills options={CATEGORIES} value={f.category || ''} onChange={(v) => set({ category: v })} /></div>
       <div><p className="label mb-2">Location</p><Pills options={COUNTRIES} value={f.country || ''} onChange={(v) => set({ country: v })} /></div>
+      <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-brand/30 bg-brand-tint/50 px-3.5 py-3 text-sm font-medium">
+        <span>Only jobs I can apply for<span className="block text-xs font-normal text-ink-soft">{who}</span></span>
+        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#0d6b45]" checked={f.eligible !== 'all'} onChange={(e) => set({ eligible: e.target.checked ? '' : 'all' })} />
+      </label>
       <label className="flex cursor-pointer items-center justify-between rounded-xl border border-line bg-white px-3.5 py-3 text-sm font-medium">
         Remote only
         <input type="checkbox" className="h-4 w-4 accent-[#0d6b45]" checked={f.remote === 'true'} onChange={(e) => set({ remote: e.target.checked ? 'true' : '' })} />

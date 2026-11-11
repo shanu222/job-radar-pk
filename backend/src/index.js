@@ -12,7 +12,7 @@ import meRoutes from './routes/me.js';
 import billingRoutes from './routes/billing.js';
 import adminRoutes from './routes/admin.js';
 import emailActionRoutes from './routes/emailActions.js';
-import { runIngest } from './jobs/ingest.js';
+import { runIngest, backfillEligibility } from './jobs/ingest.js';
 import { runReminders } from './jobs/reminders.js';
 import { seedAdmin } from './jobs/seedAdmin.js';
 import { emailEnabled } from './lib/email.js';
@@ -75,6 +75,7 @@ try {
   process.exit(1);
 }
 app.listen(config.port, () => console.log(`JobRadar API on :${config.port}`));
+backfillEligibility().catch((e) => console.error('[eligibility backfill]', e.message));
 
 cron.schedule(config.ingestCron, () => runIngest().catch((e) => console.error('[cron ingest]', e)));
 cron.schedule(config.reminderCron, () => runReminders().catch((e) => console.error('[cron reminders]', e)));

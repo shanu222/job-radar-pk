@@ -107,6 +107,8 @@ function normalize(j) {
     url: j.job_apply_link || j.job_google_link,
     posted_at: j.job_posted_at_datetime_utc,
     deadline: exp ? exp.slice(0, 10) : toISODate(extractDeadline(j.job_description)),
+    // Google Jobs gives the employer's country; remote roles there are normally limited to it
+    restriction_codes: j.job_is_remote && j.job_country && j.job_country !== 'PK' ? [j.job_country] : [],
   };
 }
 

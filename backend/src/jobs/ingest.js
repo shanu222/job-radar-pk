@@ -1,5 +1,6 @@
 import { query } from '../db.js';
 import { activeSources } from '../sources/index.js';
+import { locationEligibility, extractDomiciles } from '../lib/eligibility.js';
 
 const clean = (j, source) => {
   if (!j.title || !j.url || !j.external_id) return null;
@@ -19,6 +20,8 @@ const clean = (j, source) => {
     url: j.url,
     posted_at: posted && !isNaN(posted) ? posted.toISOString() : null,
     deadline: j.deadline || null,
+    eligible: locationEligibility(j),
+    domiciles: (j.category || 'private') === 'govt' ? extractDomiciles(`${j.title}\n${j.description || ''}`, j.site_domicile) : [],
   };
 };
 
@@ -26,7 +29,7 @@ async function upsert(rows) {
   let n = 0;
   for (let i = 0; i < rows.length; i += 200) {
     const chunk = rows.slice(i, i + 200);
-    const cols = ['source', 'external_id', 'title', 'company', 'location', 'country', 'category', 'is_remote', 'description', 'tags', 'salary', 'url', 'posted_at', 'deadline'];
+    const cols = ['source', 'external_id', 'title', 'company', 'location', 'country', 'category', 'is_remote', 'description', 'tags', 'salary', 'url', 'posted_at', 'deadline', 'eligible', 'domiciles'];
     const values = [];
     const placeholders = chunk.map((r, ri) => `(${cols.map((c, ci) => { values.push(r[c]); return `$${ri * cols.length + ci + 1}`; }).join(',')})`);
     const res = await query(
@@ -35,7 +38,7 @@ async function upsert(rows) {
          title = EXCLUDED.title, company = EXCLUDED.company, location = EXCLUDED.location,
          description = COALESCE(EXCLUDED.description, jobs.description), tags = EXCLUDED.tags,
          salary = COALESCE(EXCLUDED.salary, jobs.salary), url = EXCLUDED.url,
-         deadline = COALESCE(EXCLUDED.deadline, jobs.deadline),
+         deadline = COALESCE(EXCLUDED.deadline, jobs.deadline), eligible = EXCLUDED.eligible, domiciles = EXCLUDED.domiciles,
          posted_at = COALESCE(jobs.posted_at, EXCLUDED.posted_at), updated_at = now()`,
       values
     );
@@ -54,11 +57,30 @@ export async function saveJobs(source, raw) {
   return rows.length ? upsert(rows) : 0;
 }
 
+/** Fill eligibility for jobs saved before this feature existed. */
+export async function backfillEligibility() {
+  const pk = JSON.parse(await import('node:fs').then((fs) => fs.readFileSync(new URL('../sources/pk-sites.json', import.meta.url), 'utf8')));
+  const siteDefault = Object.fromEntries(pk.map((s) => [s.id, s.domicile]));
+  let total = 0;
+  for (;;) {
+    const { rows } = await query(`SELECT id, external_id, title, description, location, country, category, is_remote FROM jobs WHERE eligible = '{}' LIMIT 500`);
+    if (!rows.length) break;
+    for (const j of rows) {
+      const site = j.external_id.split(':')[0];
+      await query('UPDATE jobs SET eligible = $2, domiciles = $3 WHERE id = $1', [j.id, locationEligibility(j),
+        j.category === 'govt' ? extractDomiciles(`${j.title}\n${j.description || ''}`, siteDefault[site]) : []]);
+    }
+    total += rows.length;
+  }
+  if (total) console.log(`[eligibility] backfilled ${total} jobs`);
+}
+
 export async function runIngest() {
   if (running) return { skipped: true };
   running = true;
   const summary = [];
   try {
+    await backfillEligibility();
     for (const src of activeSources()) {
       const t0 = Date.now();
       try {

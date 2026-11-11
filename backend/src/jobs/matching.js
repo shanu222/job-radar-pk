@@ -1,5 +1,6 @@
 import { query } from '../db.js';
 import { scoreJob } from '../lib/match.js';
+import { eligibilitySql } from '../lib/eligibility.js';
 
 /** Build a Postgres websearch query (OR of skills + title words) to pre-filter candidates. */
 function tsQueryFor(user) {
@@ -23,9 +24,11 @@ export async function matchJobsForUser(user, opts = {}) {
   if (category) { params.push(category); where.push(`category = $${params.length}`); }
   if (country) { params.push(country); where.push(`country = $${params.length}`); }
   if (remoteOnly) where.push('is_remote');
+  // Only jobs this person can really apply for: their country/region, and domicile for govt jobs
+  where.push(eligibilitySql(params, { country: user.country || 'PK', domicile: user.domicile }));
 
   const { rows } = await query(
-    `SELECT id, source, title, company, location, country, category, is_remote, tags, salary, url, posted_at, deadline,
+    `SELECT id, source, title, company, location, country, category, is_remote, tags, salary, url, posted_at, deadline, domiciles, eligible,
             left(description, 3000) AS description,
             (deadline - CURRENT_DATE) AS days_left
        FROM jobs WHERE ${where.join(' AND ')}

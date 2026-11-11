@@ -6,6 +6,7 @@ import { api, CATEGORY, SOURCE_LABEL, fmtDate, timeAgo } from '@/lib/api';
 import { DeadlineBadge, MatchRing } from '@/components/JobCard';
 import { useAuth } from '@/components/AuthProvider';
 import AiTools from '@/components/AiTools';
+import { eligibilityLabel } from '@/lib/places';
 
 export default function JobDetail({ params }) {
   const { id } = use(params);
@@ -51,6 +52,7 @@ export default function JobDetail({ params }) {
                 {job.deadline ? <span>Deadline <b>{fmtDate(job.deadline)}</b></span> : <span className="text-ink-soft">No deadline listed</span>}
               </div>
               <DeadlineBadge deadline={job.deadline} daysLeft={job.days_left} />
+              {eligibilityLabel(job) && <p className="text-sm"><span className="text-ink-soft">Who can apply: </span><b>{eligibilityLabel(job)}</b></p>}
               <p className="text-xs text-ink-soft">via {SOURCE_LABEL[job.source] || job.source}{job.posted_at ? ` · posted ${timeAgo(job.posted_at)}` : ''}</p>
             </div>
             <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn-primary w-full">Apply on original site <ExternalLink size={15} /></a>

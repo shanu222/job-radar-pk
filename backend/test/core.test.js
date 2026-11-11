@@ -68,3 +68,48 @@ test('JSearch searches come from the CV, not a fixed list', () => {
     { q: 'python jobs in Pakistan', remote: false },
   ]);
 });
+
+import { locationEligibility, extractDomiciles, canApplyDomicile, userTokens } from '../src/lib/eligibility.js';
+
+const canApply = (job, country = 'PK') => locationEligibility(job).some((t) => userTokens(country).includes(t));
+
+test('international jobs: only ones Pakistanis can really apply for', () => {
+  const remote = (location, description = '') => ({ country: 'INTL', is_remote: true, location, description });
+  assert.equal(canApply(remote('Worldwide')), true);
+  assert.equal(canApply(remote('Anywhere in the World')), true);
+  assert.equal(canApply(remote('Remote')), true);
+  assert.equal(canApply(remote('USA Only')), false);
+  assert.equal(canApply(remote('United States, Canada')), false);
+  assert.equal(canApply(remote('Europe')), false);
+  assert.equal(canApply(remote('EMEA')), false);
+  assert.equal(canApply(remote('APAC')), true);
+  assert.equal(canApply(remote('Asia')), true);
+  assert.equal(canApply(remote('Pakistan, India, Bangladesh')), true);
+  assert.equal(canApply(remote('Remote', 'You must be located in the United States. Only US residents.')), false);
+  assert.equal(canApply(remote('Remote', 'Work hours overlap with UTC+3 to UTC+8.')), true);
+  assert.equal(canApply(remote('Remote', 'Candidates in UTC-8 to UTC-3 time zones only.')), false);
+  assert.equal(canApply(remote('Berlin')), false); // remote within Germany
+  assert.equal(canApply({ country: 'INTL', is_remote: true, location: 'Austin, TX, US', restriction_codes: ['US'] }), false); // JSearch US remote
+  // On-site abroad: only with visa sponsorship
+  assert.equal(canApply({ country: 'INTL', is_remote: false, location: 'Berlin, Germany', description: 'Great team.' }), false);
+  assert.equal(canApply({ country: 'INTL', is_remote: false, location: 'Berlin, Germany', description: 'Visa sponsorship is available and relocation support provided.' }), true);
+  assert.equal(canApply({ country: 'INTL', is_remote: false, location: 'Dubai', description: 'We do not offer visa sponsorship.' }), false);
+  // Pakistani jobs
+  assert.equal(canApply({ country: 'PK', is_remote: false, location: 'Lahore' }), true);
+  assert.equal(canApply({ country: 'PK', is_remote: false, location: 'Lahore' }, 'GB'), false);
+  // Someone in the UK sees Europe/EMEA jobs
+  assert.equal(canApply(remote('EMEA'), 'GB'), true);
+});
+
+test('government jobs: domicile from the ad and the commission', () => {
+  assert.deepEqual(extractDomiciles('Candidates having domicile of Punjab may apply', null), ['punjab']);
+  assert.deepEqual(extractDomiciles('Lecturer (BS-17). Domicile: Sindh (Urban)', null).sort(), ['sindh']);
+  assert.deepEqual(extractDomiciles('Posts reserved for KPK and Balochistan domicile holders', null).sort(), ['balochistan', 'kp']);
+  assert.deepEqual(extractDomiciles('Recruitment on all Pakistan basis', 'punjab'), ['ALL']);
+  assert.deepEqual(extractDomiciles('Assistant Director (BS-17)', 'sindh'), ['sindh']); // SPSC default
+  assert.deepEqual(extractDomiciles('Assistant Director (BS-17)', undefined), []);      // FPSC: not stated
+  assert.equal(canApplyDomicile(['punjab'], 'sindh'), false);
+  assert.equal(canApplyDomicile(['punjab'], 'punjab'), true);
+  assert.equal(canApplyDomicile(['ALL'], 'gb'), true);
+  assert.equal(canApplyDomicile([], 'gb'), true);
+});

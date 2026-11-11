@@ -5,12 +5,13 @@ import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useAuth } from './AuthProvider';
 import { googleEnabled, googleIdToken } from '@/lib/firebase';
+import { COUNTRIES, PROVINCES } from '@/lib/places';
 
 export default function AuthForm({ mode }) {
   const isReg = mode === 'register';
   const router = useRouter();
   const { signIn } = useAuth();
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', country: 'PK', domicile: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -18,7 +19,7 @@ export default function AuthForm({ mode }) {
     e.preventDefault();
     setBusy(true); setError('');
     try {
-      const { token, user } = await api(`/api/auth/${isReg ? 'register' : 'login'}`, { method: 'POST', body: isReg ? form : { email: form.email, password: form.password }, auth: false });
+      const { token, user } = await api(`/api/auth/${isReg ? 'register' : 'login'}`, { method: 'POST', body: isReg ? { ...form, domicile: form.country === 'PK' ? form.domicile : undefined } : { email: form.email, password: form.password }, auth: false });
       signIn(token, user);
       router.push(user.role === 'admin' ? '/admin' : isReg ? '/matches' : '/jobs');
     } catch (err) { setError(err.message); } finally { setBusy(false); }
@@ -61,6 +62,22 @@ export default function AuthForm({ mode }) {
         )}
         {isReg && field('name', 'Full name', 'text', { autoComplete: 'name' })}
         {field('email', 'Email', 'email', { autoComplete: 'email' })}
+        {isReg && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block"><span className="mb-1.5 block text-sm font-medium">Country</span>
+              <select className="input" required value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })}>
+                {COUNTRIES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+              </select></label>
+            {form.country === 'PK' && (
+              <label className="block"><span className="mb-1.5 block text-sm font-medium">Domicile</span>
+                <select className="input" required value={form.domicile} onChange={(e) => setForm({ ...form, domicile: e.target.value })}>
+                  <option value="" disabled>Select province</option>
+                  {PROVINCES.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+                </select></label>
+            )}
+          </div>
+        )}
+        {isReg && <p className="-mt-1 text-xs text-ink-soft">Used to show only government jobs open to your domicile and international jobs open to applicants from your country.</p>}
         {field('password', 'Password', 'password', { minLength: 8, maxLength: 128, autoComplete: isReg ? 'new-password' : 'current-password' })}
         {error && <p className="rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
         <button disabled={busy} className="btn-primary h-11 w-full">{busy ? 'Please wait…' : isReg ? 'Create account' : 'Sign in'}</button>
