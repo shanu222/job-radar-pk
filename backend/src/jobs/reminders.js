@@ -35,8 +35,8 @@ export async function runReminders() {
 
       if (!closing.length && !matches.length) continue;
       const subject = closing.length
-        ? `⏰ ${closing.length} job deadline${closing.length > 1 ? 's' : ''} closing soon${matches.length ? ` + ${matches.length} new matches` : ''}`
-        : `✨ ${matches.length} new job${matches.length > 1 ? 's' : ''} matching your CV`;
+        ? `${closing.length} job deadline${closing.length > 1 ? 's' : ''} closing soon${matches.length ? `, plus ${matches.length} new matches` : ''}`
+        : `${matches.length} new job${matches.length > 1 ? 's' : ''} matching your CV`;
       await sendMail({ to: u.email, subject, html: renderDigest({ name: u.name, closing, matches, appUrl: config.frontendUrl[0] }) });
       const values = [...closing.map((j) => [u.id, j.id, closingKind(j)]), ...matches.map((j) => [u.id, j.id, 'match'])];
       for (const v of values) await query(`INSERT INTO reminders_sent (user_id, job_id, kind) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, v);

@@ -28,15 +28,16 @@ export async function api(path, { method = 'GET', body, form, auth = true } = {}
 export const qs = (o) =>
   new URLSearchParams(Object.entries(o).filter(([, v]) => v !== undefined && v !== '' && v !== null && v !== false)).toString();
 
+// Category is shown as plain text; colour is kept for deadlines and matches
 export const CATEGORY = {
-  govt: { label: 'Government', cls: 'bg-brand-tint text-brand-dark' },
-  private: { label: 'Private / NGO', cls: 'bg-sky-50 text-sky-800' },
-  remote: { label: 'Remote', cls: 'bg-violet-50 text-violet-800' },
-  freelance: { label: 'Freelance', cls: 'bg-amber-50 text-amber-800' },
+  govt: { label: 'Government', cls: 'bg-paper text-ink' },
+  private: { label: 'Private / NGO', cls: 'bg-paper text-ink' },
+  remote: { label: 'Remote', cls: 'bg-paper text-ink' },
+  freelance: { label: 'Freelance', cls: 'bg-paper text-ink' },
 };
 
 export const SOURCE_LABEL = {
-  pkgov: 'Govt portal', jsearch: 'Google Jobs', reliefweb: 'ReliefWeb', remotive: 'Remotive', remoteok: 'Remote OK',
+  pkgov: 'Commission website', jsearch: 'Google Jobs', reliefweb: 'ReliefWeb', remotive: 'Remotive', remoteok: 'Remote OK',
   arbeitnow: 'Arbeitnow', jobicy: 'Jobicy', himalayas: 'Himalayas', rss: 'RSS', reddit: 'Reddit',
 };
 

@@ -29,15 +29,15 @@ export default function CvUpload({ onDone, compact }) {
       <button type="button" onClick={() => input.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setDrag(true); }} onDragLeave={() => setDrag(false)}
         onDrop={(e) => { e.preventDefault(); setDrag(false); upload(e.dataTransfer.files[0]); }}
-        className={`flex w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed text-center transition ${compact ? 'p-5' : 'p-10'} ${drag ? 'border-brand bg-brand-tint' : 'border-line bg-white hover:border-brand/50'}`}>
+        className={`flex w-full flex-col items-center justify-center rounded-[10px] border-2 border-dashed text-center transition ${compact ? 'p-5' : 'p-10'} ${drag ? 'border-brand bg-brand-tint' : 'border-line bg-white hover:border-brand/50'}`}>
         {busy ? <Loader2 className="mb-3 animate-spin text-brand" size={32} /> : user?.has_cv ? <FileCheck2 className="mb-3 text-brand" size={32} /> : <UploadCloud className="mb-3 text-brand" size={32} />}
         <p className="font-display font-semibold">{busy ? 'Reading your CV…' : user?.has_cv ? 'Replace your CV' : 'Drop your CV here or click to upload'}</p>
-        <p className="mt-1 text-sm text-ink-soft">PDF, DOCX or TXT · up to 5 MB</p>
+        <p className="mt-1 text-sm text-ink-soft">PDF, DOCX or TXT, up to 5 MB</p>
       </button>
       <input ref={input} type="file" accept=".pdf,.docx,.txt" hidden onChange={(e) => upload(e.target.files[0])} />
       {error === 'PAYWALL'
-        ? <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">CV matching is part of Pro. <a href="/billing" className="font-semibold underline">Upgrade with Easypaisa or JazzCash</a></p>
-        : error && <p className="mt-3 rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
+        ? <p className="mt-3 rounded-[6px] bg-amber-50 px-3 py-2 text-sm text-amber-900">CV matching is part of Pro. <a href="/billing" className="font-semibold underline">Upgrade with Easypaisa or JazzCash</a></p>
+        : error && <p className="mt-3 rounded-[6px] bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
     </div>
   );
 }

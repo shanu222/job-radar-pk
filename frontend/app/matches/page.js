@@ -1,13 +1,13 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Sparkles, Settings2 } from 'lucide-react';
+import { Loader2, Settings2 } from 'lucide-react';
 import { api, qs } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import RequireAuth from '@/components/RequireAuth';
 import CvUpload from '@/components/CvUpload';
 import Paywall from '@/components/Paywall';
-import JobCard, { JobSkeleton } from '@/components/JobCard';
+import JobCard, { JobSkeleton, JobList } from '@/components/JobCard';
 
 const TABS = [['', 'All matches'], ['govt', 'Government'], ['private', 'Private & NGO'], ['remote', 'Remote'], ['freelance', 'Gigs']];
 
@@ -52,7 +52,7 @@ function Matches() {
               <h2 className="font-display font-semibold">Your profile</h2>
               <Link href="/profile" className="text-ink-soft hover:text-ink" title="Edit"><Settings2 size={16} /></Link>
             </div>
-            {user.titles?.length > 0 && <p className="mb-3 text-sm text-ink-soft">{user.titles.slice(0, 2).join(' · ')}</p>}
+            {user.titles?.length > 0 && <p className="mb-3 text-sm text-ink-soft">{user.titles.slice(0, 2).join(', ')}</p>}
             {user.experience_years != null && <p className="mb-3 text-sm"><b>{user.experience_years}</b> years experience</p>}
             <div className="flex flex-wrap gap-1.5">{user.skills?.map((s) => <span key={s} className="chip bg-brand-tint text-brand-dark">{s}</span>)}</div>
           </div>
@@ -60,23 +60,23 @@ function Matches() {
         </aside>
         <section className="min-w-0">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="flex items-center gap-2 font-display text-2xl font-bold"><Sparkles className="text-brand" size={22} /> Matched to your CV</h1>
+            <h1 className="font-display text-2xl font-bold">Matched to your CV</h1>
             <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
-              <input type="checkbox" className="h-4 w-4 accent-[#0d6b45]" checked={closing} onChange={(e) => setClosing(e.target.checked)} /> Closing in 2 weeks
+              <input type="checkbox" className="h-4 w-4 accent-[#1f4e8c]" checked={closing} onChange={(e) => setClosing(e.target.checked)} /> Closing in 2 weeks
             </label>
           </div>
           {searching && (
-            <div className="mb-4 flex items-center gap-3 rounded-xl border border-brand/20 bg-brand-tint px-4 py-3 text-sm text-brand-dark">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-brand" />
-              Searching LinkedIn, Indeed, Rozee and more for jobs that fit your CV — new results will appear here in a moment.
+            <div className="mb-4 flex items-center gap-3 rounded-[8px] border border-brand/20 bg-brand-tint px-4 py-3 text-sm text-brand-dark">
+              <Loader2 size={16} className="shrink-0 animate-spin" />
+              Searching LinkedIn, Indeed, Rozee and other boards for jobs that fit your CV. New results will appear here within a minute.
             </div>
           )}
-          <div className="mb-5 flex gap-1 overflow-x-auto">
-            {TABS.map(([v, l]) => <button key={v} onClick={() => setCategory(v)} className={`whitespace-nowrap rounded-lg px-3.5 py-2 text-sm font-medium ${category === v ? 'bg-ink text-white' : 'text-ink-soft hover:bg-white'}`}>{l}</button>)}
+          <div className="mb-5 flex gap-5 overflow-x-auto border-b border-line" role="tablist">
+            {TABS.map(([v, l]) => <button key={v} role="tab" aria-selected={category === v} onClick={() => setCategory(v)} className={`-mb-px whitespace-nowrap border-b-2 pb-2.5 pt-1 text-sm font-medium ${category === v ? 'border-brand text-ink' : 'border-transparent text-ink-soft hover:text-ink'}`}>{l}</button>)}
           </div>
-          <div className="space-y-3">
-            {!data && Array.from({ length: 5 }).map((_, i) => <JobSkeleton key={i} />)}
-            {data?.jobs.map((j, i) => <JobCard key={j.id} job={j} index={i} />)}
+          {!data && <JobList>{Array.from({ length: 5 }).map((_, i) => <JobSkeleton key={i} />)}</JobList>}
+          {data?.jobs.length > 0 && <JobList>{data.jobs.map((j) => <JobCard key={j.id} job={j} />)}</JobList>}
+          <div>
             {data?.jobs.length === 0 && (
               <div className="card p-10 text-center">
                 <p className="font-display text-lg font-semibold">No strong matches here yet</p>

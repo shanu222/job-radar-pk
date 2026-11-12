@@ -1,10 +1,10 @@
 'use client';
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Search, SlidersHorizontal, X, Sparkles, FileText } from 'lucide-react';
+import { Search, SlidersHorizontal, X, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { api, qs, SOURCE_LABEL } from '@/lib/api';
-import JobCard, { JobSkeleton } from '@/components/JobCard';
+import JobCard, { JobSkeleton, JobList } from '@/components/JobCard';
 import { useAuth } from '@/components/AuthProvider';
 import { COUNTRY_NAME, PROVINCE_NAME } from '@/lib/places';
 
@@ -17,7 +17,7 @@ function Pills({ options, value, onChange }) {
     <div className="flex flex-wrap gap-1.5">
       {options.map(([v, l]) => (
         <button key={v} type="button" onClick={() => onChange(v)}
-          className={`rounded-lg border px-3 py-1.5 text-sm transition ${value === v ? 'border-ink bg-ink text-white' : 'border-line bg-white hover:border-ink/30'}`}>{l}</button>
+          className={`rounded-[6px] border px-3 py-1.5 text-sm transition ${value === v ? 'border-brand bg-brand-tint text-brand-dark' : 'border-line bg-white hover:border-ink/30'}`}>{l}</button>
       ))}
     </div>
   );
@@ -34,7 +34,7 @@ function JobsInner() {
   const { user, ready } = useAuth();
   const canMatch = !!(user?.access?.active && (user?.has_cv || user?.skills?.length));
   const cvMode = canMatch && f.cv !== '0';
-  const who = `${COUNTRY_NAME[user?.country || 'PK']}${user?.domicile ? ` · ${PROVINCE_NAME[user.domicile]} domicile` : ''}`;
+  const who = `${COUNTRY_NAME[user?.country || 'PK']}${user?.domicile ? `, ${PROVINCE_NAME[user.domicile]} domicile` : ''}`;
 
   const set = (patch) => router.push(`/jobs?${qs({ ...f, page: undefined, ...patch })}`, { scroll: false });
 
@@ -50,20 +50,20 @@ function JobsInner() {
   const filters = (
     <div className="space-y-6">
       {canMatch && (
-        <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl bg-ink px-3.5 py-3 text-sm font-semibold text-white">
-          <span className="flex gap-2"><Sparkles size={16} className="mt-0.5 shrink-0 text-mint" /><span>Only jobs that fit my CV<span className="block text-xs font-normal text-white/70">Matched to your skills and experience</span></span></span>
-          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#b7f0c9]" checked={cvMode} onChange={(e) => set({ cv: e.target.checked ? undefined : '0' })} />
+         <label className="flex cursor-pointer items-start justify-between gap-3 rounded-[8px] border border-brand/30 bg-brand-tint px-3.5 py-3 text-sm font-semibold text-brand-dark">
+          <span>Only jobs that fit my CV<span className="block text-xs font-normal text-ink-soft">Matched to your skills and experience</span></span>
+          <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#1f4e8c]" checked={cvMode} onChange={(e) => set({ cv: e.target.checked ? undefined : '0' })} />
         </label>
       )}
       <div><p className="label mb-2">Type</p><Pills options={CATEGORIES} value={f.category || ''} onChange={(v) => set({ category: v })} /></div>
       <div><p className="label mb-2">Location</p><Pills options={COUNTRIES} value={f.country || ''} onChange={(v) => set({ country: v })} /></div>
-      <label className="flex cursor-pointer items-start justify-between gap-3 rounded-xl border border-brand/30 bg-brand-tint/50 px-3.5 py-3 text-sm font-medium">
+      <label className="flex cursor-pointer items-start justify-between gap-3 rounded-[8px] border border-line bg-white px-3.5 py-3 text-sm font-medium">
         <span>Only jobs I can apply for<span className="block text-xs font-normal text-ink-soft">{who}</span></span>
-        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#0d6b45]" checked={f.eligible !== 'all'} onChange={(e) => set({ eligible: e.target.checked ? '' : 'all' })} />
+        <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#1f4e8c]" checked={f.eligible !== 'all'} onChange={(e) => set({ eligible: e.target.checked ? '' : 'all' })} />
       </label>
-      <label className="flex cursor-pointer items-center justify-between rounded-xl border border-line bg-white px-3.5 py-3 text-sm font-medium">
+      <label className="flex cursor-pointer items-center justify-between rounded-[8px] border border-line bg-white px-3.5 py-3 text-sm font-medium">
         Remote only
-        <input type="checkbox" className="h-4 w-4 accent-[#0d6b45]" checked={f.remote === 'true'} onChange={(e) => set({ remote: e.target.checked ? 'true' : '' })} />
+        <input type="checkbox" className="h-4 w-4 accent-[#1f4e8c]" checked={f.remote === 'true'} onChange={(e) => set({ remote: e.target.checked ? 'true' : '' })} />
       </label>
       <div><p className="label mb-2">Deadline within</p><Pills options={DEADLINES} value={f.deadline || ''} onChange={(v) => set({ deadline: v })} /></div>
       <div>
@@ -92,7 +92,7 @@ function JobsInner() {
         <aside className="hidden lg:block"><div className="sticky top-24">{filters}</div></aside>
         {showFilters && (
           <div className="fixed inset-0 z-50 bg-ink/40 lg:hidden" onClick={() => setShowFilters(false)}>
-            <div className="absolute bottom-0 max-h-[85vh] w-full overflow-auto rounded-t-3xl bg-paper p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute bottom-0 max-h-[85vh] w-full overflow-auto rounded-t-[14px] bg-paper p-6" onClick={(e) => e.stopPropagation()}>
               <div className="mb-5 flex items-center justify-between"><h3 className="font-display text-lg font-bold">Filters</h3><button onClick={() => setShowFilters(false)}><X /></button></div>
               {filters}
             </div>
@@ -114,10 +114,10 @@ function JobsInner() {
               {(f.q || cvMode) && <option value="relevance">{cvMode ? 'Best match' : 'Most relevant'}</option>}
             </select>
           </div>
-          {error && <div className="card border-danger/30 bg-danger-tint p-5 text-sm text-danger">Couldn’t load jobs: {error}</div>}
-          <div className="space-y-3">
-            {!data && !error && Array.from({ length: 6 }).map((_, i) => <JobSkeleton key={i} />)}
-            {data?.jobs.map((j, i) => <JobCard key={j.id} job={j} index={i} />)}
+          {error && <div className="card border-danger/30 bg-danger-tint p-5 text-sm text-danger">{error}</div>}
+          {(!data && !error) && <JobList>{Array.from({ length: 6 }).map((_, i) => <JobSkeleton key={i} />)}</JobList>}
+          {data?.jobs.length > 0 && <JobList>{data.jobs.map((j) => <JobCard key={j.id} job={j} />)}</JobList>}
+          <div>
             {data && data.jobs.length === 0 && (
               <div className="card p-12 text-center">
                 <p className="font-display text-lg font-semibold">{cvMode ? 'No jobs fit your CV with these filters yet' : 'No jobs match these filters'}</p>
@@ -127,9 +127,9 @@ function JobsInner() {
           </div>
           {data?.pages > 1 && (
             <div className="mt-8 flex items-center justify-center gap-2">
-              <button disabled={data.page <= 1} onClick={() => set({ page: data.page - 1 })} className="btn-ghost">← Previous</button>
+              <button disabled={data.page <= 1} onClick={() => set({ page: data.page - 1 })} className="btn-ghost">Previous</button>
               <span className="px-3 text-sm text-ink-soft">Page {data.page} of {data.pages}</span>
-              <button disabled={data.page >= data.pages} onClick={() => set({ page: data.page + 1 })} className="btn-ghost">Next →</button>
+              <button disabled={data.page >= data.pages} onClick={() => set({ page: data.page + 1 })} className="btn-ghost">Next</button>
             </div>
           )}
         </section>

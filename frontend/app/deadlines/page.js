@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { CalendarClock, Bookmark, BookmarkCheck } from 'lucide-react';
+import { Bookmark, BookmarkCheck } from 'lucide-react';
 import { api, qs, CATEGORY } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 
@@ -28,7 +28,7 @@ export default function Deadlines() {
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-2 font-display text-3xl font-bold"><CalendarClock className="text-alert" /> Deadlines</h1>
+          <h1 className="font-display text-3xl font-bold">Deadlines</h1>
           <p className="mt-1 text-ink-soft">{data ? `${total} applications closing in the next ${days} days` : 'Loading…'}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -38,8 +38,8 @@ export default function Deadlines() {
           <select className="input w-auto" value={country} onChange={(e) => setCountry(e.target.value)}>
             <option value="">Anywhere</option><option value="PK">Pakistan</option><option value="INTL">International</option>
           </select>
-          <div className="flex rounded-xl border border-line bg-white p-1">
-            {RANGES.map(([v, l]) => <button key={v} onClick={() => setDays(v)} className={`rounded-lg px-3 py-1.5 text-sm ${days === v ? 'bg-ink text-white' : 'text-ink-soft'}`}>{l}</button>)}
+          <div className="flex rounded-[8px] border border-line bg-white p-1">
+            {RANGES.map(([v, l]) => <button key={v} onClick={() => setDays(v)} className={`rounded-[6px] px-3 py-1.5 text-sm ${days === v ? 'bg-brand-tint text-brand-dark' : 'text-ink-soft'}`}>{l}</button>)}
           </div>
         </div>
       </div>
@@ -52,22 +52,22 @@ export default function Deadlines() {
           const { diff, top, sub } = dayLabel(g.date);
           const urgent = diff <= 1, soon = diff <= 3;
           return (
-            <li key={g.date} className="rise relative">
-              <span className={`absolute -left-[33px] sm:-left-[41px] top-1 h-4 w-4 rounded-full border-4 border-paper ${urgent ? 'bg-danger' : soon ? 'bg-alert' : 'bg-brand'}`} />
+            <li key={g.date} className="relative">
+              <span className={`absolute -left-[33px] sm:-left-[41px] top-1 h-4 w-4 rounded-full border-4 border-paper ${urgent ? 'bg-danger' : soon ? 'bg-alert' : 'bg-line-strong'}`} />
               <div className="mb-3 flex items-baseline gap-3">
                 <h2 className={`font-display text-lg font-bold ${urgent ? 'text-danger' : ''}`}>{top}</h2>
-                <span className="text-sm text-ink-soft">{sub} · {g.jobs.length} closing</span>
+                <span className="text-sm text-ink-soft">{sub}, {g.jobs.length} closing</span>
               </div>
               <div className="card divide-y divide-line">
                 {g.jobs.map((j) => (
                   <div key={j.id} className="flex items-center gap-3 p-4">
-                    <span className={`chip ${(CATEGORY[j.category] || CATEGORY.private).cls}`}>{(CATEGORY[j.category] || CATEGORY.private).label}</span>
+                    <span className={`chip hidden sm:inline-flex ${(CATEGORY[j.category] || CATEGORY.private).cls}`}>{(CATEGORY[j.category] || CATEGORY.private).label}</span>
                     <div className="min-w-0 flex-1">
                       <Link href={`/jobs/${j.id}`} className="block truncate font-medium hover:text-brand">{j.title}</Link>
-                      <p className="truncate text-sm text-ink-soft">{j.company}{j.location ? ` · ${j.location}` : ''}</p>
+                      <p className="truncate text-sm text-ink-soft">{j.company}{j.location ? `, ${j.location}` : ''}</p>
                     </div>
                     {user && (
-                      <button onClick={() => toggleSave(j.id)} className={`rounded-lg p-2 ${savedIds.has(j.id) ? 'text-brand' : 'text-ink-soft hover:text-ink'}`} title="Save & remind me">
+                      <button onClick={() => toggleSave(j.id)} className={`rounded-[6px] p-2 ${savedIds.has(j.id) ? 'text-brand' : 'text-ink-soft hover:text-ink'}`} title="Save and remind me" aria-label="Save and remind me">
                         {savedIds.has(j.id) ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
                       </button>
                     )}

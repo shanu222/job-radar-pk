@@ -9,7 +9,7 @@ import { DeadlineBadge } from '@/components/JobCard';
 
 const STATUSES = [
   ['saved', 'To apply', 'bg-paper text-ink'], ['applied', 'Applied', 'bg-sky-50 text-sky-800'],
-  ['interview', 'Interview', 'bg-violet-50 text-violet-800'], ['offer', 'Offer 🎉', 'bg-brand-tint text-brand-dark'], ['rejected', 'Not selected', 'bg-danger-tint text-danger'],
+  ['interview', 'Interview', 'bg-violet-50 text-violet-800'], ['offer', 'Offer', 'bg-brand-tint text-brand-dark'], ['rejected', 'Not selected', 'bg-danger-tint text-danger'],
 ];
 
 function Tracker() {
@@ -56,7 +56,7 @@ function Tracker() {
       {shown.length > 0 && (
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="hidden bg-paper text-left text-xs uppercase tracking-wider text-ink-soft sm:table-header-group">
+            <thead className="hidden bg-paper text-left text-xs font-semibold text-ink-soft sm:table-header-group">
               <tr><th className="p-4">Job</th><th className="p-4">Deadline</th><th className="p-4">Status</th><th className="p-4" /></tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -75,8 +75,8 @@ function Tracker() {
                     </select>
                   </td>
                   <td className="whitespace-nowrap sm:p-4 sm:text-right">
-                    <a href={j.url} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-lg p-2 text-ink-soft hover:bg-paper"><ExternalLink size={16} /></a>
-                    <button onClick={() => remove(j.id)} className="rounded-lg p-2 text-ink-soft hover:bg-danger-tint hover:text-danger"><Trash2 size={16} /></button>
+                    <a href={j.url} target="_blank" rel="noopener noreferrer" className="inline-flex rounded-[6px] p-2 text-ink-soft hover:bg-paper"><ExternalLink size={16} /></a>
+                    <button onClick={() => remove(j.id)} className="rounded-[6px] p-2 text-ink-soft hover:bg-danger-tint hover:text-danger"><Trash2 size={16} /></button>
                   </td>
                 </tr>
               ))}

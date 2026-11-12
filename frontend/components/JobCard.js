@@ -1,110 +1,144 @@
 'use client';
 import Link from 'next/link';
-import { Bookmark, BookmarkCheck, MapPin, Building2, ExternalLink, Globe2 } from 'lucide-react';
+import { Bookmark, BookmarkCheck, ExternalLink } from 'lucide-react';
 import { CATEGORY, SOURCE_LABEL, timeAgo } from '@/lib/api';
 import { useAuth } from './AuthProvider';
-import { useRouter } from 'next/navigation';
 import { eligibilityLabel } from '@/lib/places';
 
-export function DeadlineBadge({ deadline, daysLeft, compact }) {
-  if (!deadline) return compact ? null : <span className="chip bg-paper text-ink-soft">Open until filled</span>;
+const urgency = (d) => (d <= 1 ? 'danger' : d <= 7 ? 'alert' : 'calm');
+
+/** Text badge for deadlines (detail pages, tracker, timelines). */
+export function DeadlineBadge({ deadline, daysLeft }) {
+  if (!deadline) return <span className="text-sm text-ink-soft">Open until filled</span>;
   const d = Number(daysLeft);
-  const cls = d <= 1 ? 'bg-danger-tint text-danger' : d <= 3 ? 'bg-alert-tint text-alert' : d <= 7 ? 'bg-amber-50 text-amber-800' : 'bg-paper text-ink-soft';
+  const u = urgency(d);
+  const cls = u === 'danger' ? 'text-danger' : u === 'alert' ? 'text-alert' : 'text-ink-soft';
   const txt = d === 0 ? 'Closes today' : d === 1 ? 'Closes tomorrow' : `${d} days left`;
-  return (
-    <span className={`chip ${cls}`} title={`Deadline ${deadline}`}>
-      {d <= 3 && <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-current" /></span>}
-      {txt}
-    </span>
-  );
+  return <span className={`text-sm font-semibold ${cls}`} title={`Last date ${deadline}`}>{txt}</span>;
 }
 
-export function MatchRing({ score }) {
-  const c = 2 * Math.PI * 16;
-  const color = score >= 70 ? '#0d6b45' : score >= 50 ? '#ca8a04' : '#94a3b8';
+/**
+ * The "last date" block: the deadline set like the date on an advertisement.
+ * Colour appears only when the deadline is close.
+ */
+export function LastDate({ deadline, daysLeft, size = 'md' }) {
+  const box = size === "sm" ? "w-14 py-1.5 self-start" : "w-[68px] py-2 self-start";
+  if (!deadline) {
+    return (
+      <div className={`${box} shrink-0 rounded-[6px] border border-line bg-paper text-center`} title="No closing date given">
+        <p className="text-[11px] font-medium text-ink-soft">Closes</p>
+        <p className="text-sm font-semibold text-ink-soft">Open</p>
+      </div>
+    );
+  }
+  const dt = new Date(`${deadline}T00:00:00`);
+  const d = Number(daysLeft);
+  const u = urgency(d);
+  const tone = u === 'danger' ? 'border-danger/40 bg-danger-tint text-danger' : u === 'alert' ? 'border-alert/40 bg-alert-tint text-alert' : 'border-line bg-white text-ink';
+  const sub = d === 0 ? 'Today' : d === 1 ? 'Tomorrow' : `${d} days`;
   return (
-    <div className="relative grid h-12 w-12 shrink-0 place-items-center" title={`${score}% match with your CV`}>
-      <svg viewBox="0 0 40 40" className="absolute inset-0 -rotate-90">
-        <circle cx="20" cy="20" r="16" fill="none" stroke="#eceae2" strokeWidth="4" />
-        <circle cx="20" cy="20" r="16" fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - score / 100)} />
-      </svg>
-      <span className="text-xs font-bold">{score}%</span>
+    <div className={`${box} tabular shrink-0 rounded-[6px] border text-center ${tone}`} title={`Last date to apply: ${dt.toDateString()}`}>
+      <p className="text-[11px] font-medium opacity-80">{dt.toLocaleDateString('en-GB', { month: 'short' })}</p>
+      <p className={`${size === 'sm' ? 'text-lg' : 'text-2xl'} font-bold leading-none`}>{dt.getDate()}</p>
+      <p className="mt-1 text-[11px] font-semibold">{sub}</p>
     </div>
   );
 }
 
-export default function JobCard({ job, index = 0 }) {
-  const { user, savedIds, toggleSave } = useAuth();
-  const router = useRouter();
+/** Match score: a plain number with a short bar, green only when it's a strong fit. */
+export function MatchRing({ score }) {
+  const strong = score >= 70;
+  return (
+    <div className="w-16 shrink-0" title={`${score}% match with your CV`}>
+      <p className={`tabular text-lg font-bold leading-none ${strong ? 'text-match' : 'text-ink'}`}>{score}%</p>
+      <div className="mt-1.5 h-1 rounded-full bg-line"><div className={`h-1 rounded-full ${strong ? 'bg-match' : 'bg-ink-soft'}`} style={{ width: `${score}%` }} /></div>
+      <p className="mt-1 text-[11px] text-ink-soft">CV match</p>
+    </div>
+  );
+}
+
+/** One job as a row in a listing. Use inside <JobList>. */
+export default function JobCard({ job }) {
+  const { savedIds, toggleSave } = useAuth();
   const saved = savedIds.has(job.id);
   const cat = CATEGORY[job.category] || CATEGORY.private;
+  const post = job.matched_position && !job.matched_position.single && job.matched_position.title ? job.matched_position : null;
+  const who = eligibilityLabel(job);
+  const meta = [cat.label, job.is_remote && job.category !== 'remote' ? 'Remote' : null, who].filter(Boolean);
+
+  const actions = (
+    <div className="-mr-2 flex gap-1">
+      <button onClick={() => toggleSave(job.id)} aria-pressed={saved}
+        className={`rounded-[6px] p-2 transition-colors ${saved ? 'text-brand' : 'text-ink-soft hover:bg-paper hover:text-ink'}`}
+        title={saved ? 'Saved. You’ll get a reminder before it closes' : 'Save and remind me before it closes'}>
+        {saved ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
+        <span className="sr-only">{saved ? 'Saved' : 'Save'}</span>
+      </button>
+      <a href={job.url} target="_blank" rel="noopener noreferrer" className="rounded-[6px] p-2 text-ink-soft hover:bg-paper hover:text-ink" title="Open the original advertisement">
+        <ExternalLink size={18} /><span className="sr-only">Open original</span>
+      </a>
+    </div>
+  );
+
   return (
-    <article className="card rise group relative p-5 transition hover:-translate-y-0.5 hover:shadow-[0_10px_30px_-12px_rgba(11,31,23,.18)]" style={{ animationDelay: `${Math.min(index, 10) * 35}ms` }}>
-      <div className="flex gap-4">
-        {job.score != null && <MatchRing score={job.score} />}
-        <div className="min-w-0 flex-1 break-words">
-          <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            <span className={`chip ${cat.cls}`}>{cat.label}</span>
-            {job.is_remote && job.category !== 'remote' && <span className="chip bg-violet-50 text-violet-800"><Globe2 size={11} />Remote</span>}
-            {job.country === 'PK' && <span className="chip bg-paper text-ink-soft">🇵🇰 Pakistan</span>}
-            {eligibilityLabel(job) && <span className="chip border border-brand/25 text-brand-dark">{eligibilityLabel(job)}</span>}
-            <DeadlineBadge deadline={job.deadline} daysLeft={job.days_left} compact />
-          </div>
-          <Link href={`/jobs/${job.id}`} className="font-display text-[17px] font-semibold leading-snug text-ink after:absolute after:inset-0 group-hover:text-brand">
-            {job.matched_position && !job.matched_position.single && job.matched_position.title ? job.matched_position.title : job.title}
-          </Link>
-          {job.matched_position && !job.matched_position.single && job.matched_position.title && (
-            <p className="mt-0.5 line-clamp-1 text-xs text-ink-soft">In: {job.title}</p>
-          )}
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-soft">
-            {job.company && <span className="flex items-center gap-1"><Building2 size={14} />{job.company}</span>}
-            {job.location && <span className="flex items-center gap-1"><MapPin size={14} />{job.location}</span>}
-          </div>
-          {job.matched_position && (job.matched_position.bps || job.matched_position.count || job.matched_position.qualification) && (
-            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink">
-              {job.matched_position.bps && <span><b>{job.matched_position.bps}</b></span>}
-              {job.matched_position.count && <span>{job.matched_position.count} post{job.matched_position.count > 1 ? 's' : ''}</span>}
-              {job.matched_position.qualification && <span className="line-clamp-1 text-ink-soft">{job.matched_position.qualification}</span>}
-            </p>
-          )}
-          {(job.summary || job.snippet) && <p className="mt-2.5 line-clamp-2 text-sm text-ink-soft/90">{job.summary || job.snippet}</p>}
-          {job.highlights?.length > 0 && (
-            <ul className="mt-2 space-y-0.5 text-xs text-ink-soft">
-              {job.highlights.slice(0, 2).map((h) => <li key={h} className="line-clamp-1">• {h}</li>)}
-            </ul>
-          )}
-          {job.matchedSkills?.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {job.matchedSkills.slice(0, 6).map((s) => <span key={s} className="chip bg-brand-tint text-brand-dark">✓ {s}</span>)}
-              {job.missingSkills?.slice(0, 3).map((s) => <span key={s} className="chip border border-dashed border-line text-ink-soft">{s}</span>)}
-            </div>
-          )}
-          <div className="mt-3 flex items-center justify-between text-xs text-ink-soft">
-            <span>via {SOURCE_LABEL[job.source] || job.source}{job.posted_at ? ` · ${timeAgo(job.posted_at)}` : ''}{job.salary ? ` · ${job.salary}` : ''}</span>
-          </div>
+    <article className="group relative flex gap-3 px-4 sm:gap-4 py-5 transition-colors hover:bg-[#f9fafb] sm:px-5">
+      <div className="sm:hidden"><LastDate deadline={job.deadline} daysLeft={job.days_left} size="sm" /></div>
+      <div className="hidden sm:block"><LastDate deadline={job.deadline} daysLeft={job.days_left} /></div>
+      <div className="min-w-0 flex-1 break-words">
+        <Link href={`/jobs/${job.id}`} className="text-base font-semibold sm:text-[17px] leading-snug text-ink after:absolute after:inset-0 group-hover:text-brand">
+          {post ? post.title : job.title}
+        </Link>
+        {post && <p className="mt-0.5 line-clamp-1 text-sm text-ink-soft">Post in {job.title}</p>}
+        <p className="mt-1 text-sm text-ink">
+          {job.company}{job.company && job.location ? ', ' : ''}<span className="text-ink-soft">{job.location}</span>
+        </p>
+        {post && (post.bps || post.count || post.qualification) && (
+          <p className="mt-2 text-sm text-ink">
+            {[post.bps, post.count ? `${post.count} seat${post.count > 1 ? 's' : ''}` : null].filter(Boolean).join(', ')}
+            {post.qualification && <span className="text-ink-soft">{post.bps || post.count ? '. ' : ''}{post.qualification}</span>}
+          </p>
+        )}
+        {(job.summary || job.snippet) && <p className="mt-2 line-clamp-2 max-w-[70ch] text-sm leading-relaxed text-ink-soft">{job.summary || job.snippet}</p>}
+        {job.matchedSkills?.length > 0 && (
+          <p className="mt-2 text-sm">
+            <span className="text-ink-soft">You have: </span>
+            <span className="font-medium text-match">{job.matchedSkills.slice(0, 6).join(', ')}</span>
+            {job.missingSkills?.length > 0 && <><span className="text-ink-soft"> &nbsp;Also asks for: </span><span className="text-ink">{job.missingSkills.slice(0, 3).join(', ')}</span></>}
+          </p>
+        )}
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-soft">
+          {meta.map((m) => <span key={m}>{m}</span>)}
+          <span>From {SOURCE_LABEL[job.source] || job.source}</span>
+          {job.posted_at && <span>Posted {timeAgo(job.posted_at)}</span>}
+          {job.salary && <span>{job.salary}</span>}
         </div>
-        <div className="relative z-10 flex flex-col items-end gap-2">
-          <button
-            onClick={() => (user ? toggleSave(job.id) : router.push('/register'))}
-            className={`rounded-lg p-2 transition ${saved ? 'bg-brand text-white' : 'text-ink-soft hover:bg-paper hover:text-ink'}`}
-            title={saved ? 'Saved — you will get deadline reminders' : 'Save & get deadline reminders'}>
-            {saved ? <BookmarkCheck size={18} /> : <Bookmark size={18} />}
-          </button>
-          <a href={job.url} target="_blank" rel="noopener noreferrer" className="rounded-lg p-2 text-ink-soft hover:bg-paper hover:text-ink" title="Open original posting">
-            <ExternalLink size={18} />
-          </a>
+        <div className="relative z-10 mt-2 flex items-center justify-between sm:hidden">
+          {job.score != null ? <span className={`tabular text-sm font-bold ${job.score >= 70 ? 'text-match' : 'text-ink'}`}>{job.score}% CV match</span> : <span />}
+          {actions}
         </div>
+      </div>
+      <div className="relative z-10 hidden shrink-0 flex-col items-end justify-between gap-3 sm:flex">
+        {job.score != null ? <MatchRing score={job.score} /> : <span />}
+        {actions}
       </div>
     </article>
   );
 }
 
+/** A listing: one bordered panel with rows separated by dividers. */
+export function JobList({ children }) {
+  return <div className="card divide-y divide-line overflow-hidden">{children}</div>;
+}
+
 export function JobSkeleton() {
   return (
-    <div className="card animate-pulse p-5">
-      <div className="mb-3 h-4 w-24 rounded bg-paper" />
-      <div className="mb-2 h-5 w-3/4 rounded bg-paper" />
-      <div className="h-4 w-1/2 rounded bg-paper" />
+    <div className="flex animate-pulse gap-4 px-5 py-5">
+      <div className="h-[74px] w-[68px] rounded-[6px] bg-paper" />
+      <div className="flex-1 space-y-2.5 pt-1">
+        <div className="h-4 w-2/3 rounded bg-paper" />
+        <div className="h-3.5 w-1/3 rounded bg-paper" />
+        <div className="h-3.5 w-5/6 rounded bg-paper" />
+      </div>
     </div>
   );
 }

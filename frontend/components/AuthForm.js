@@ -75,13 +75,13 @@ export default function AuthForm({ mode }) {
   );
 
   return (
-    <div className="grain min-h-[calc(100vh-4rem)] px-4 py-8 sm:px-6 lg:py-12">
+    <div className="min-h-[calc(100vh-4rem)] px-4 py-8 sm:px-6 lg:py-12">
       <div className="mx-auto grid max-w-6xl items-start gap-8 lg:grid-cols-[1.15fr_1fr] lg:gap-10">
       <div className="order-2 hidden lg:order-1 lg:block"><AuthShowcase /></div>
-      <form onSubmit={submit} className="card rise order-1 mx-auto w-full max-w-md space-y-4 p-6 shadow-[0_20px_60px_-25px_rgba(11,31,23,.3)] sm:p-8 lg:order-2 lg:sticky lg:top-24">
+      <form onSubmit={submit} className="card order-1 mx-auto w-full max-w-md space-y-4 p-6  sm:p-8 lg:order-2 lg:sticky lg:top-24">
         <div className="mb-2">
           <h1 className="font-display text-2xl font-bold">{isReg ? 'Create your free account' : 'Sign in to JobRadar PK'}</h1>
-          <p className="mt-1 text-sm text-ink-soft">{isReg ? 'Free to browse every job. Upgrade any time to let your CV filter jobs for you.' : 'Every government, private and remote job — matched to your CV.'}</p>
+          <p className="mt-1 text-sm text-ink-soft">{isReg ? 'Free to browse every job. Upgrade any time to let your CV filter jobs for you.' : 'Government, private and remote jobs, with the last date for each.'}</p>
         </div>
         {(gisEnabled || googleEnabled) && (
           <>

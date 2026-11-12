@@ -73,14 +73,14 @@ function DeleteAccount() {
   };
 
   return (
-    <section className="mt-6 rounded-2xl border border-danger/30 bg-white p-6 sm:p-8">
+    <section className="mt-6 rounded-[10px] border border-danger/30 bg-white p-6 sm:p-8">
       <h2 className="flex items-center gap-2 font-display text-lg font-bold text-danger"><Trash2 size={18} /> Delete my account</h2>
       <p className="mt-1 text-sm text-ink-soft">Permanently deletes your account, CV, saved jobs and payment history. Any remaining Pro days are lost. This cannot be undone.</p>
       {step === 'idle' ? (
         <button onClick={request} disabled={busy} className="btn mt-4 border border-danger/40 bg-white text-danger hover:bg-danger-tint">{busy ? 'Sending…' : 'Email me a confirmation code'}</button>
       ) : (
         <form onSubmit={confirmDelete} className="mt-4 space-y-3">
-          <p className="flex items-center gap-2 rounded-lg bg-paper px-3 py-2 text-sm"><MailCheck size={16} className="text-brand" />We sent a 6-digit code to <b>{sentTo}</b>. It expires in 15 minutes.</p>
+          <p className="flex items-center gap-2 rounded-[6px] bg-paper px-3 py-2 text-sm"><MailCheck size={16} className="text-brand" />We sent a 6-digit code to <b>{sentTo}</b>. It expires in 15 minutes.</p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <input className="input font-mono text-lg tracking-[.4em] sm:w-48" inputMode="numeric" autoComplete="one-time-code" maxLength={6} pattern="[0-9]{6}" required
               value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="••••••" />
@@ -89,7 +89,7 @@ function DeleteAccount() {
           <button type="button" onClick={request} disabled={busy} className="text-sm font-semibold text-ink-soft hover:text-ink">Send a new code</button>
         </form>
       )}
-      {error && <p className="mt-3 rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
+      {error && <p className="mt-3 rounded-[6px] bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
     </section>
   );
 }
@@ -115,7 +115,7 @@ function Profile() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
       <h1 className="font-display text-3xl font-bold">Profile & alerts</h1>
-      <p className="mb-8 mt-1 text-ink-soft">{user.email}{user.google ? ' · Google account' : ''} · {user.access?.active ? <Link href="/billing" className="font-semibold text-brand">Pro active</Link> : <Link href="/billing" className="font-semibold text-brand">Upgrade to Pro</Link>}</p>
+      <p className="mb-8 mt-1 text-ink-soft">{user.email}{user.google ? ' (Google account)' : ''}<span className="mx-2 text-line-strong">|</span>{user.access?.active ? <Link href="/billing" className="font-semibold text-brand">Pro active</Link> : <Link href="/billing" className="font-semibold text-brand">Upgrade to Pro</Link>}</p>
       <div className="mb-8"><CvUpload compact onDone={(u) => setP((x) => ({ ...x, skills: u.skills, titles: u.titles, experience_years: u.experience_years ?? '' }))} /></div>
       <form onSubmit={save} className="card space-y-6 p-6 sm:p-8">
         <label className="block"><span className="label">Name</span><input className="input mt-2" value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} /></label>
@@ -132,7 +132,7 @@ function Profile() {
               </select></label>
           )}
         </div>
-        <div><span className="label">Skills</span><p className="mb-2 text-xs text-ink-soft">Read from your CV — add or remove to fine-tune your matches.</p>
+        <div><span className="label">Skills</span><p className="mb-2 text-xs text-ink-soft">Read from your CV. Add or remove to fine-tune your matches.</p>
           <ChipInput value={p.skills} onChange={(skills) => setP({ ...p, skills })} placeholder="Add a skill and press Enter" /></div>
         <div><span className="label">Job titles you want</span>
           <div className="mt-2"><ChipInput value={p.titles} onChange={(titles) => setP({ ...p, titles })} placeholder="e.g. full stack developer" /></div></div>
@@ -145,12 +145,12 @@ function Profile() {
             {CATS.map(([k, l]) => {
               const on = p.pref_categories.includes(k);
               return <button type="button" key={k} onClick={() => setP({ ...p, pref_categories: on ? p.pref_categories.filter((x) => x !== k) : [...p.pref_categories, k] })}
-                className={`rounded-lg border px-3 py-1.5 text-sm ${on ? 'border-ink bg-ink text-white' : 'border-line bg-white'}`}>{l}</button>;
+                className={`rounded-[6px] border px-3 py-1.5 text-sm ${on ? 'border-brand bg-brand-tint text-brand-dark' : 'border-line bg-white'}`}>{l}</button>;
             })}
           </div></div>
-        <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl bg-paper p-4">
+        <label className="flex cursor-pointer items-start justify-between gap-4 rounded-[8px] bg-paper p-4">
           <span><b className="text-sm">Daily email alerts</b><span className="block text-sm text-ink-soft">Saved & matching jobs closing soon, plus new strong matches. Sent around 9 AM.</span></span>
-          <input type="checkbox" className="mt-1 h-5 w-5 accent-[#0d6b45]" checked={p.email_alerts} onChange={(e) => setP({ ...p, email_alerts: e.target.checked })} />
+          <input type="checkbox" className="mt-1 h-5 w-5 accent-[#1f4e8c]" checked={p.email_alerts} onChange={(e) => setP({ ...p, email_alerts: e.target.checked })} />
         </label>
         <button className="btn-primary">{saved ? <><Check size={16} /> Saved</> : 'Save changes'}</button>
       </form>

@@ -73,7 +73,7 @@ r.post('/payments', requireAuth, submitLimiter, upload.single('screenshot'), asy
   const link = `${config.publicApiUrl}/email-actions/payment?t=${paymentLinkToken(row.id)}`;
   const methodName = METHOD_NAMES[p.data.method];
   notifyAdmin(
-    `💰 New ${methodName} payment — Rs ${s.price_pkr} from ${req.user.email}`,
+    `New ${methodName} payment: Rs ${s.price_pkr} from ${req.user.email}`,
     layout(`
       <p>A user submitted a payment for review.</p>
       <table style="font-size:14px;border-collapse:collapse">
@@ -85,8 +85,8 @@ r.post('/payments', requireAuth, submitLimiter, upload.single('screenshot'), asy
       </table>
       <p>Check that this ${p.data.method === 'bank' ? 'reference' : 'TID'} and amount appear in your ${p.data.method === 'bank' ? 'HBL account statement' : `${methodName} app`} before approving. The screenshot is attached.</p>
       <table cellpadding="0" cellspacing="0" style="margin:18px 0"><tr>
-        <td style="padding-right:10px"><a href="${esc(link)}&a=approve" style="display:inline-block;background:#0f5132;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:700">✅ Approve</a></td>
-        <td><a href="${esc(link)}&a=reject" style="display:inline-block;background:#fff;color:#b91c1c;border:2px solid #b91c1c;padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:700">❌ Reject</a></td>
+        <td style="padding-right:10px"><a href="${esc(link)}&a=approve" style="display:inline-block;background:#1f4e8c;color:#fff;padding:12px 22px;border-radius:10px;text-decoration:none;font-weight:700">Approve</a></td>
+        <td><a href="${esc(link)}&a=reject" style="display:inline-block;background:#fff;color:#b91c1c;border:2px solid #b91c1c;padding:10px 22px;border-radius:10px;text-decoration:none;font-weight:700">Reject</a></td>
       </tr></table>
       <p style="font-size:13px;color:#555">Each button opens a confirmation page — nothing changes until you confirm there. Links work for 14 days. You can also review it in the <a href="${esc(appUrl)}/admin?tab=payments">admin panel</a>.</p>`),
     [{ filename: `payment-${row.id}.${mime.split('/')[1]}`, content: req.file.buffer }]

@@ -22,12 +22,12 @@ const page = (title, body) => `<!doctype html><html lang="en"><head><meta charse
   h1{font-size:22px;margin:0 0 6px}.muted{color:#3d5248;font-size:14px}table{width:100%;border-collapse:collapse;margin:14px 0;font-size:15px}
   td{padding:7px 0;border-bottom:1px solid #f0eee6;vertical-align:top}td:first-child{color:#3d5248;width:40%}
   .btn{display:block;width:100%;border:0;border-radius:12px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;margin-top:10px}
-  .ok{background:#0d6b45;color:#fff}.no{background:#fff;color:#b91c1c;border:2px solid #b91c1c}
+  .ok{background:#1f4e8c;color:#fff}.no{background:#fff;color:#b91c1c;border:2px solid #b91c1c}
   textarea{width:100%;border:1px solid #e3e1d8;border-radius:12px;padding:10px;font:inherit;min-height:70px;margin-top:6px}
   img{max-width:100%;border-radius:12px;border:1px solid #e3e1d8;margin-top:10px}.badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600}
   .g{background:#e3f2ea;color:#08492f}.r{background:#fdecec;color:#b91c1c}.warn{background:#fff7e6;border-radius:12px;padding:10px 12px;font-size:14px;margin-top:12px}
-  a{color:#0d6b45}
-</style></head><body><div class="wrap"><p style="font-weight:800;margin:0 0 14px">JobRadar <span style="color:#0d6b45">PK</span> · Admin</p>${body}</div></body></html>`;
+  a{color:#1f4e8c}
+</style></head><body><div class="wrap"><p style="font-weight:800;margin:0 0 14px">JobRadar PK admin</p>${body}</div></body></html>`;
 
 async function load(token) {
   const pid = verifyPaymentLinkToken(token);
@@ -67,10 +67,10 @@ r.get('/payment', async (req, res) => {
     <form method="post" action="payment">
       <input type="hidden" name="t" value="${t}">
       ${action === 'approve'
-        ? `<button class="btn ok" name="a" value="approve">✅ Yes, approve & activate Pro</button>
+        ? `<button class="btn ok" name="a" value="approve">Approve and activate Pro</button>
            <p class="muted" style="text-align:center;margin-top:14px"><a href="payment?t=${t}&a=reject">Reject instead</a></p>`
         : `<label class="muted">Reason (sent to the user)</label><textarea name="note" maxlength="500" placeholder="e.g. TID not found in our account"></textarea>
-           <button class="btn no" name="a" value="reject">❌ Reject payment</button>
+           <button class="btn no" name="a" value="reject">Reject payment</button>
            <p class="muted" style="text-align:center;margin-top:14px"><a href="payment?t=${t}">Approve instead</a></p>`}
     </form></div>`));
 });
@@ -107,9 +107,9 @@ r.post('/payment', async (req, res) => {
   const done = await reviewPayment({ id: pid, action, note, adminId: admin?.id, via: 'email' });
   if (!done) return res.redirect(303, `payment?t=${encodeURIComponent(req.body.t)}`);
   const until = done.user.paid_until ? new Date(done.user.paid_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-  res.type('html').send(page('Done', `<div class="card"><h1>${action === 'approve' ? '✅ Approved' : '❌ Rejected'}</h1>
+  res.type('html').send(page('Done', `<div class="card"><h1>${action === 'approve' ? 'Payment approved' : 'Payment rejected'}</h1>
     <p class="muted">${action === 'approve' ? `Pro is active for ${esc(done.user.email)} until <b>${esc(until)}</b>.` : `${esc(done.user.email)} has been told the payment couldn't be verified.`} They have been emailed.</p>
-    <p><a href="${esc(config.frontendUrl[0])}/admin?tab=payments">Open admin panel →</a></p></div>`));
+    <p><a href="${esc(config.frontendUrl[0])}/admin?tab=payments">Open the admin panel</a></p></div>`));
 });
 
 export default r;

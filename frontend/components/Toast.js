@@ -35,7 +35,7 @@ export function ToastProvider({ children }) {
           const [border, color, Icon] = STYLE[type];
           return (
             <div key={k} role={type === 'error' ? 'alert' : 'status'}
-              className={`rise pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border ${border} bg-white px-4 py-3 text-sm shadow-[0_12px_32px_-12px_rgba(11,31,23,.35)]`}>
+              className={`appear pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-[8px] border ${border} bg-white px-4 py-3 text-sm shadow-lg`}>
               <Icon size={18} className={`mt-px shrink-0 ${color}`} />
               <p className="flex-1 text-ink">{message}</p>
               <button onClick={() => dismiss(k)} className="text-ink-soft hover:text-ink" aria-label="Dismiss"><X size={15} /></button>

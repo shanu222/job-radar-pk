@@ -36,12 +36,12 @@ function Overview({ go }) {
   return (
     <div className="space-y-6">
       {d.payments.pending > 0 && (
-        <button onClick={() => go('payments')} className="flex w-full items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left text-amber-900">
-          <Clock size={20} /><b>{d.payments.pending} payment{d.payments.pending > 1 ? 's' : ''} waiting for review</b><span className="ml-auto text-sm font-semibold">Review →</span>
+        <button onClick={() => go('payments')} className="flex w-full items-center gap-3 rounded-[10px] border border-amber-200 bg-amber-50 p-4 text-left text-amber-900">
+          <Clock size={20} /><b>{d.payments.pending} payment{d.payments.pending > 1 ? 's' : ''} waiting for review</b><span className="ml-auto text-sm font-semibold">Review</span>
         </button>
       )}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat label="Users" value={d.users.users} sub={`+${d.users.new_week} this week · ${d.users.with_cv} with CV`} />
+        <Stat label="Users" value={d.users.users} sub={`${d.users.new_week} new this week, ${d.users.with_cv} with a CV`} />
         <Stat label="Paying now" value={d.users.paying} sub={`${d.users.free_users} on free access`} tone="text-brand" />
         <Stat label="Revenue this month" value={`Rs ${d.payments.revenue_month.toLocaleString()}`} sub={`Rs ${d.payments.revenue_total.toLocaleString()} all time`} />
         <Stat label="Live jobs" value={d.jobs.jobs.toLocaleString()} sub={`${d.jobs.jobs_today} added in 24h`} />
@@ -74,9 +74,9 @@ function Screenshot({ id, onClose }) {
   }, [id]);
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-ink/70 p-4" onClick={onClose}>
-      <div className="relative max-h-[90vh] max-w-lg overflow-auto rounded-2xl bg-white p-2" onClick={(e) => e.stopPropagation()}>
+      <div className="relative max-h-[90vh] max-w-lg overflow-auto rounded-[10px] bg-white p-2" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute right-3 top-3 rounded-full bg-white/90 p-1.5 shadow"><X size={16} /></button>
-        {url ? <img src={url} alt="Payment screenshot" className="w-full rounded-xl" /> : <div className="grid h-64 w-64 place-items-center"><Loader2 className="animate-spin" /></div>}
+        {url ? <img src={url} alt="Payment screenshot" className="w-full rounded-[8px]" /> : <div className="grid h-64 w-64 place-items-center"><Loader2 className="animate-spin" /></div>}
       </div>
     </div>
   );
@@ -98,7 +98,7 @@ function Payments() {
     if (action === 'reject' && !notes[p.id] && !(await dlg.confirm({ title: 'Reject without a reason?', message: 'The user will be emailed that their payment could not be verified.', confirmLabel: 'Reject', danger: true }))) return;
     if (action === 'approve' && !(await dlg.confirm({ title: `Approve ${ref} ${p.txn_id}?`, message: `${p.email} will get Pro access.\n\nOnly approve after you see this ${ref} and Rs ${p.amount} in your ${{ easypaisa: 'Easypaisa app', jazzcash: 'JazzCash app', bank: 'HBL statement' }[p.method]}.`, confirmLabel: 'Approve' }))) return;
     setBusy(p.id);
-    try { await api(`/api/admin/payments/${p.id}/review`, { method: 'POST', body: { action, note: notes[p.id] || undefined } }); toast.success(action === 'approve' ? 'Payment approved — the user has been emailed' : 'Payment rejected — the user has been emailed'); load(); }
+    try { await api(`/api/admin/payments/${p.id}/review`, { method: 'POST', body: { action, note: notes[p.id] || undefined } }); toast.success(action === 'approve' ? 'Payment approved. The user has been emailed.' : 'Payment rejected. The user has been emailed.'); load(); }
     catch (e) { toast.error(e); } finally { setBusy(null); }
   };
 
@@ -106,7 +106,7 @@ function Payments() {
     <div>
       <div className="mb-4 flex gap-1">
         {['pending', 'approved', 'rejected', ''].map((s) => (
-          <button key={s} onClick={() => setStatus(s)} className={`rounded-lg px-3 py-1.5 text-sm font-medium ${status === s ? 'bg-ink text-white' : 'text-ink-soft hover:bg-white'}`}>{s ? s[0].toUpperCase() + s.slice(1) : 'All'}</button>
+          <button key={s} onClick={() => setStatus(s)} className={`rounded-[6px] px-3 py-1.5 text-sm font-medium ${status === s ? 'bg-brand-tint text-brand-dark' : 'text-ink-soft hover:bg-white'}`}>{s ? s[0].toUpperCase() + s.slice(1) : 'All'}</button>
         ))}
       </div>
       {!list && <div className="card h-40 animate-pulse" />}
@@ -115,17 +115,17 @@ function Payments() {
         {list?.map((p) => (
           <div key={p.id} className="card p-5">
             <div className="flex flex-wrap items-start gap-4">
-              <button onClick={() => setShot(p.id)} className="grid h-20 w-16 shrink-0 place-items-center rounded-lg border border-line bg-paper text-ink-soft hover:border-ink/40" title="View screenshot"><Eye size={18} /></button>
+              <button onClick={() => setShot(p.id)} className="grid h-20 w-16 shrink-0 place-items-center rounded-[6px] border border-line bg-paper text-ink-soft hover:border-ink/40" title="View screenshot"><Eye size={18} /></button>
               <div className="min-w-0 flex-1 text-sm">
                 <p className="font-display text-base font-semibold">{p.name || p.email}</p>
-                <p className="text-ink-soft">{p.email}{p.approved_before ? ` · ${p.approved_before} previous payment${p.approved_before > 1 ? 's' : ''}` : ' · first payment'}</p>
+                <p className="text-ink-soft">{p.email}{p.approved_before ? `, ${p.approved_before} previous payment${p.approved_before > 1 ? 's' : ''}` : ', first payment'}</p>
                 <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1">
-                  <span><b className={{ easypaisa: 'text-[#1fb04b]', jazzcash: 'text-[#d11f2f]', bank: 'text-brand' }[p.method]}>{{ easypaisa: 'Easypaisa', jazzcash: 'JazzCash', bank: 'Bank transfer' }[p.method]}</b> · Rs {p.amount.toLocaleString()}</span>
+                  <span><b className={{ easypaisa: 'text-[#1fb04b]', jazzcash: 'text-[#d11f2f]', bank: 'text-brand' }[p.method]}>{{ easypaisa: 'Easypaisa', jazzcash: 'JazzCash', bank: 'Bank transfer' }[p.method]}</b>, Rs {p.amount.toLocaleString()}</span>
                   <span>{p.method === 'bank' ? 'Ref' : 'TID'} <b className="font-mono">{p.txn_id}</b></span>
                   <span>From {p.sender_number}</span>
                   <span className="text-ink-soft">{new Date(p.created_at).toLocaleString('en-GB')}</span>
                 </div>
-                {p.status !== 'pending' && <p className="mt-2 text-ink-soft">{p.status === 'approved' ? `Approved · ${p.days_granted} days · plan until ${d10(p.paid_until)}` : `Rejected${p.admin_note ? `: ${p.admin_note}` : ''}`}</p>}
+                {p.status !== 'pending' && <p className="mt-2 text-ink-soft">{p.status === 'approved' ? `Approved for ${p.days_granted} days, plan until ${d10(p.paid_until)}` : `Rejected${p.admin_note ? `: ${p.admin_note}` : ''}`}</p>}
               </div>
               {p.status === 'pending' && (
                 <div className="flex w-full flex-col gap-2 sm:w-64">
@@ -188,9 +188,9 @@ function UsersTab() {
         {data?.users.map((u) => (
           <div key={u.id} className={`flex flex-wrap items-center gap-3 p-4 text-sm ${u.disabled ? 'opacity-60' : ''}`}>
             <div className="min-w-[220px] flex-1">
-              <p className="font-medium">{u.name || '—'} {u.role === 'admin' && <span className="chip ml-1 bg-ink text-white"><Shield size={11} />Admin</span>} {u.google && <span className="chip ml-1 bg-paper text-ink-soft">Google</span>}</p>
+              <p className="font-medium">{u.name || '—'} {u.role === 'admin' && <span className="chip ml-1 bg-brand-tint text-brand-dark"><Shield size={11} />Admin</span>} {u.google && <span className="chip ml-1 bg-paper text-ink-soft">Google</span>}</p>
               <p className="text-ink-soft">{u.email}</p>
-              <p className="mt-1 text-xs text-ink-soft">Joined {d10(u.created_at)} · last seen {d10(u.last_login)} · {u.has_cv ? 'CV uploaded' : 'no CV'}</p>
+              <p className="mt-1 text-xs text-ink-soft">Joined {d10(u.created_at)}. Last seen {d10(u.last_login)}. {u.has_cv ? 'CV uploaded' : 'No CV'}</p>
             </div>
             <div className="w-44 text-xs">
               {u.disabled ? <span className="chip bg-danger-tint text-danger">Suspended</span>
@@ -256,9 +256,9 @@ function SettingsTab() {
     <div className="space-y-6">
 
       <Section title="Access & pricing">
-        <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl bg-paper p-4">
+        <label className="flex cursor-pointer items-start justify-between gap-4 rounded-[8px] bg-paper p-4">
           <span><b className="text-sm">Make CV matching free for everyone</b><span className="block text-sm text-ink-soft">Turns off the paywall for all users (e.g. a launch promotion). Paid plans keep their dates.</span></span>
-          <input type="checkbox" className="mt-1 h-5 w-5 accent-[#0d6b45]" checked={s.global_free} onChange={(e) => save({ global_free: e.target.checked })} />
+          <input type="checkbox" className="mt-1 h-5 w-5 accent-[#1f4e8c]" checked={s.global_free} onChange={(e) => save({ global_free: e.target.checked })} />
         </label>
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block"><span className="label">Price (Rs)</span><input type="number" min="0" className="input mt-2" value={s.price_pkr} onChange={(e) => set('price_pkr', Number(e.target.value))} /></label>
@@ -298,7 +298,7 @@ function SettingsTab() {
           <input className="input mt-2 font-mono" value={s.ai.baseUrl} onChange={(e) => set('ai', { ...s.ai, baseUrl: e.target.value })} placeholder="https://api.openai.com/v1" /></label>}
         <label className="block"><span className="label flex items-center gap-2">API key {keyStatus(s.ai.apiKey)}</span>
           <input type="password" autoComplete="off" className="input mt-2 font-mono" value={secrets.ai} onChange={(e) => setSecrets({ ...secrets, ai: e.target.value })} placeholder={s.ai.apiKey.set ? 'Leave empty to keep the saved key' : 'Paste your API key'} /></label>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-[#0d6b45]" checked={s.ai.enabled} onChange={(e) => set('ai', { ...s.ai, enabled: e.target.checked })} /> AI features enabled</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4 accent-[#1f4e8c]" checked={s.ai.enabled} onChange={(e) => set('ai', { ...s.ai, enabled: e.target.checked })} /> AI features enabled</label>
         <p className="text-xs text-ink-soft">Used for reading CVs, job fit checks and cover letters. A key saved here is tried first; keys set in Railway (Gemini, OpenRouter, OpenAI) are used automatically as fallbacks when a limit is reached. Keys never reach browsers.</p>
         <div className="flex flex-wrap gap-2">
           <button onClick={() => save({ ai: { provider: s.ai.provider, model: s.ai.model, baseUrl: s.ai.baseUrl || '', enabled: s.ai.enabled, apiKey: secrets.ai || undefined } })} className="btn-primary">Save</button>
@@ -306,7 +306,7 @@ function SettingsTab() {
           {s.ai.apiKey.set && <button onClick={async () => (await dlg.confirm({ title: 'Remove the saved AI key?', message: 'AI will fall back to the keys set in Railway.', confirmLabel: 'Remove', danger: true })) && save({ ai: { apiKey: '__clear__' } })} className="btn-ghost text-danger">Remove key</button>}
         </div>
         {test.ai?.results && (
-          <div className="divide-y divide-line rounded-xl border border-line text-sm">
+          <div className="divide-y divide-line rounded-[8px] border border-line text-sm">
             {test.ai.results.map((r) => (
               <div key={r.id} className="flex flex-wrap items-center gap-2 px-3 py-2">
                 <span className={`chip ${r.ok ? 'bg-brand-tint text-brand-dark' : 'bg-danger-tint text-danger'}`}>{r.ok ? 'Working' : 'Failed'}</span>
@@ -317,7 +317,7 @@ function SettingsTab() {
             <p className="px-3 py-2 text-xs text-ink-soft">Requests use the first working model in this order and switch automatically when one hits its limit.</p>
           </div>
         )}
-        {test.ai?.err && <p className="rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{test.ai.err}</p>}
+        {test.ai?.err && <p className="rounded-[6px] bg-danger-tint px-3 py-2 text-sm text-danger">{test.ai.err}</p>}
       </Section>
 
       <Section title="Email (Resend)">
@@ -331,8 +331,8 @@ function SettingsTab() {
           <button onClick={() => save({ email: { adminNotify: s.email.adminNotify, from: s.email.from, resendApiKey: secrets.resend || undefined } })} className="btn-primary">Save</button>
           <button onClick={() => runTest('email')} className="btn-ghost">{test.email?.busy ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}Send test email</button>
         </div>
-        {test.email?.ok && <p className="rounded-lg bg-brand-tint px-3 py-2 text-sm text-brand-dark">{test.email.ok}</p>}
-        {test.email?.err && <p className="rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{test.email.err}</p>}
+        {test.email?.ok && <p className="rounded-[6px] bg-brand-tint px-3 py-2 text-sm text-brand-dark">{test.email.ok}</p>}
+        {test.email?.err && <p className="rounded-[6px] bg-danger-tint px-3 py-2 text-sm text-danger">{test.email.err}</p>}
       </Section>
     </div>
   );
@@ -359,7 +359,7 @@ function DataTab() {
       </div>
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
-          <thead className="bg-paper text-left text-xs uppercase tracking-wider text-ink-soft"><tr><th className="p-3">Source</th><th className="p-3">Last run</th><th className="p-3">Fetched</th><th className="p-3">Saved</th><th className="p-3">Status</th></tr></thead>
+          <thead className="bg-paper text-left text-xs font-semibold text-ink-soft"><tr><th className="p-3">Source</th><th className="p-3">Last run</th><th className="p-3">Fetched</th><th className="p-3">Saved</th><th className="p-3">Status</th></tr></thead>
           <tbody className="divide-y divide-line">
             {d?.sources.map((s) => (
               <tr key={s.name}><td className="p-3 font-medium">{s.label}</td>
@@ -416,7 +416,7 @@ function AdminInner() {
       <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
         <nav className="flex gap-1 overflow-x-auto lg:flex-col">
           {TABS.map(([k, l, Icon]) => (
-            <button key={k} onClick={() => go(k)} className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm font-medium ${tab === k ? 'bg-ink text-white' : 'text-ink-soft hover:bg-white hover:text-ink'}`}><Icon size={16} />{l}</button>
+            <button key={k} onClick={() => go(k)} className={`flex items-center gap-2 whitespace-nowrap rounded-[6px] px-3 py-2 text-left text-sm font-medium ${tab === k ? 'bg-brand-tint text-brand-dark' : 'text-ink-soft hover:bg-white hover:text-ink'}`}><Icon size={16} />{l}</button>
           ))}
         </nav>
         <div className="min-w-0">{body}</div>

@@ -35,10 +35,10 @@ export async function reviewPayment({ id, action, note, days, adminId, via = 'pa
   const until = user.paid_until ? new Date(user.paid_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
   sendMail({
     to: user.email,
-    subject: action === 'approve' ? '✅ Payment approved — JobRadar Pro is active' : 'Your payment could not be verified',
+    subject: action === 'approve' ? 'Payment approved: JobRadar Pro is active' : 'Your payment could not be verified',
     html: layout(action === 'approve'
       ? `<p>Assalam o Alaikum ${esc(user.name || '')},</p><p>Your payment (${ref} <b>${esc(pay.txn_id)}</b>, Rs ${pay.amount}) has been approved. CV matching, AI tools and job alerts are active until <b>${esc(until)}</b>.</p>
-         <p><a href="${esc(appUrl)}/matches" style="background:#0f5132;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">See my matches</a></p>`
+         <p><a href="${esc(appUrl)}/matches" style="background:#1f4e8c;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none">See my matches</a></p>`
       : `<p>Assalam o Alaikum ${esc(user.name || '')},</p><p>We couldn't verify your payment with ${ref} <b>${esc(pay.txn_id)}</b>.${note ? ` Reason: ${esc(note)}` : ''}</p>
          <p>You can submit it again with the correct details on the <a href="${esc(appUrl)}/billing">billing page</a>.</p>`),
   }).catch((e) => console.warn('[payment email]', e.message));

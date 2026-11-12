@@ -33,7 +33,7 @@ export default function AiTools({ jobId }) {
   if (!user || available === false) return null;
   if (!user.access?.active) return (
     <div className="mt-5 border-t border-line pt-5 text-sm">
-      <p className="flex items-center gap-2 font-display font-semibold"><Wand2 size={16} className="text-brand" /> AI fit check & cover letter</p>
+      <p className="flex items-center gap-2 font-semibold"><Wand2 size={16} className="text-brand" /> AI fit check & cover letter</p>
       <p className="mt-1 text-ink-soft">See how well you fit this job and get a tailored cover letter.</p>
       <Link href="/billing" className="btn-primary mt-3 w-full">Unlock with Pro</Link>
     </div>
@@ -48,21 +48,21 @@ export default function AiTools({ jobId }) {
 
   return (
     <div className="mt-5 border-t border-line pt-5">
-      <p className="mb-3 flex items-center gap-2 font-display font-semibold"><Wand2 size={16} className="text-brand" /> AI tools</p>
+      <p className="mb-3 flex items-center gap-2 font-semibold"><Wand2 size={16} className="text-brand" /> AI tools</p>
       <div className="grid grid-cols-2 gap-2">
         <button onClick={() => run('insight')} disabled={!!busy} className="btn-ghost text-xs">{busy === 'insight' ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}Fit check</button>
         <button onClick={() => run('cover_letter')} disabled={!!busy} className="btn-ghost text-xs">{busy === 'cover_letter' ? <Loader2 size={14} className="animate-spin" /> : <FileSignature size={14} />}Cover letter</button>
       </div>
-      {error && <p className="mt-3 rounded-lg bg-danger-tint px-3 py-2 text-xs text-danger">{error}</p>}
+      {error && <p className="mt-3 rounded-[6px] bg-danger-tint px-3 py-2 text-xs text-danger">{error}</p>}
       {out.insight && (
-        <div className="mt-4 rounded-xl bg-paper p-4">
+        <div className="mt-4 rounded-[8px] bg-paper p-4">
           <div className="mb-2 flex items-center justify-between"><span className="label">Fit check</span>
             <button onClick={() => run('insight', true)} className="text-ink-soft hover:text-ink" title="Regenerate"><RefreshCw size={13} /></button></div>
           <Md text={out.insight} />
         </div>
       )}
       {out.cover_letter && (
-        <div className="mt-4 rounded-xl bg-paper p-4">
+        <div className="mt-4 rounded-[8px] bg-paper p-4">
           <div className="mb-2 flex items-center justify-between"><span className="label">Cover letter</span>
             <span className="flex gap-2">
               <button onClick={() => { navigator.clipboard?.writeText(out.cover_letter); setCopied(true); setTimeout(() => setCopied(false), 1500); }} className="text-ink-soft hover:text-ink" title="Copy">{copied ? <Check size={13} /> : <Copy size={13} />}</button>
@@ -71,7 +71,7 @@ export default function AiTools({ jobId }) {
           <p className="whitespace-pre-line text-sm leading-relaxed">{out.cover_letter}</p>
         </div>
       )}
-      <p className="mt-3 text-[11px] text-ink-soft">AI can make mistakes — check before sending.</p>
+      <p className="mt-3 text-[11px] text-ink-soft">AI can make mistakes. Check before sending.</p>
     </div>
   );
 }

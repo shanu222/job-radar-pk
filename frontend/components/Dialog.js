@@ -43,7 +43,7 @@ export function DialogProvider({ children }) {
             role="dialog" aria-modal="true"
             onMouseDown={(e) => e.stopPropagation()}
             onSubmit={(e) => { e.preventDefault(); close(d.kind === 'prompt' ? value : true); }}
-            className="rise w-full max-w-md rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-2xl"
+            className="appear w-full max-w-md rounded-t-[14px] bg-white p-6 shadow-2xl sm:rounded-[10px]"
           >
             <div className="flex gap-3">
               <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-full ${d.danger ? 'bg-danger-tint text-danger' : 'bg-brand-tint text-brand'}`}>

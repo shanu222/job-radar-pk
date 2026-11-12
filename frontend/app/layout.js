@@ -1,5 +1,4 @@
-import '@fontsource-variable/inter';
-import '@fontsource-variable/plus-jakarta-sans';
+import '@fontsource-variable/public-sans';
 import './globals.css';
 import { AuthProvider } from '@/components/AuthProvider';
 import Navbar from '@/components/Navbar';
@@ -9,7 +8,7 @@ import { ToastProvider } from '@/components/Toast';
 import AuthGate from '@/components/AuthGate';
 
 export const metadata = {
-  title: 'JobRadar PK — Every job in Pakistan & remote, with deadlines',
+  title: 'JobRadar PK | Government, private and remote jobs with deadlines',
   description: 'Government, private, NGO, international remote and Reddit jobs in one place. Upload your CV to see matching jobs and get reminders before deadlines close.',
 };
 
@@ -23,8 +22,11 @@ export default function RootLayout({ children }) {
           <Navbar />
           <CompleteProfile />
           <main><AuthGate>{children}</AuthGate></main>
-          <footer className="mt-24 border-t border-line py-10 text-center text-sm text-ink-soft">
-            JobRadar PK aggregates public listings. Always confirm details and deadlines on the original posting before applying.
+          <footer className="mt-20 border-t border-line bg-white">
+            <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-ink-soft sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <span>JobRadar PK, by Sustainable Solution 360</span>
+              <span>Listings come from public sources. Confirm details on the official advertisement before applying.</span>
+            </div>
           </footer>
         </DialogProvider>
         </AuthProvider>
