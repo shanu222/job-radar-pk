@@ -40,7 +40,7 @@ Every job is tagged with who can actually apply, and by default people only see 
 | **ReliefWeb** (`reliefweb`) | UN agencies, INGOs, NGOs in Pakistan (+ home-based) | Free appname | ✅ Real closing dates |
 | **Remotive, Remote OK, Arbeitnow, Jobicy, Himalayas** | International remote jobs | No | Himalayas has real expiry dates; others parsed from text |
 | **We Work Remotely + any RSS** (`rss`) | Remote jobs; add more feeds with `RSS_FEEDS` | No | Parsed from text |
-| **Reddit** (`reddit`) | r/forhire, r/hiring, r/remotejs, r/jobbit, r/freelance_forhire, r/PakistanJobs, plus hiring posts in r/pakistan, r/Islamabad, r/karachi, r/lahore | Reddit app (free) — strongly recommended | Parsed from text |
+| **Reddit** (`reddit`) — off by default | r/forhire, r/hiring, r/remotejs, r/jobbit, r/freelance_forhire, r/PakistanJobs, plus hiring posts in r/pakistan, r/Islamabad, r/karachi, r/lahore | Reddit app (free) — strongly recommended | Parsed from text |
 
 Ingestion runs **every 3 hours**; expired jobs are cleaned up automatically (saved ones are kept).
 
@@ -48,7 +48,7 @@ Ingestion runs **every 3 hours**; expired jobs are cleaned up automatically (sav
 
 1. **Government sites change layout often.** The `pkgov` scraper doesn't rely on fixed CSS selectors — it reads each listing page's rows and pulls the title, link and closing date — but a site can still move its listing page. Check `GET /api/sources` after deploy: any site returning 0 rows needs its URL updated in `backend/src/sources/pk-sites.json` (or a `selector` added to narrow the area). The scraper respects `robots.txt` and waits between requests.
 2. **Rozee.pk, LinkedIn and Indeed are not scraped directly** — their terms forbid it, and they block scrapers. JSearch (Google Jobs) is the legitimate way to get those listings. Add a RapidAPI key; without it private-sector Pakistan coverage is thin.
-3. **Reddit blocks most anonymous traffic from cloud servers.** Create a free "script" app at <https://www.reddit.com/prefs/apps> and set `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`.
+3. **Reddit is off unless approved.** Reddit's Responsible Builder Policy requires approval for API access and explicit written approval for commercial use. Set `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` only after Reddit approves; until then the app never contacts Reddit.
 4. Remote boards ask for attribution — the UI shows "via <source>" on every card; keep it.
 5. Many remote jobs have no deadline — they show "Open until filled" and are not in the Deadlines page.
 

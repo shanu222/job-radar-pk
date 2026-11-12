@@ -1,6 +1,7 @@
-// Reddit hiring posts. Uses Reddit's official OAuth (app-only) when REDDIT_CLIENT_ID/SECRET
-// are set — strongly recommended on Railway because Reddit blocks most anonymous cloud traffic.
-// Create a "script" app at https://www.reddit.com/prefs/apps to get the credentials.
+// Reddit hiring posts — OFF unless REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET are set.
+// Reddit's Responsible Builder Policy requires approval before any API access, and *explicit written
+// approval* for commercial use (JobRadar has paid plans). Only add credentials once Reddit has approved
+// this use case. Without them this source never contacts Reddit.
 import { config } from '../config.js';
 import { getJSON } from '../lib/http.js';
 import { extractDeadline, toISODate } from '../lib/deadline.js';
@@ -28,11 +29,13 @@ async function getToken() {
 }
 
 export const reddit = {
-  name: 'reddit', label: 'Reddit', homepage: 'https://www.reddit.com',
+  name: 'reddit', label: 'Reddit (needs Reddit approval)', homepage: 'https://www.reddit.com',
+  enabled: () => !!(process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET),
   async fetch() {
     const t = await getToken();
-    const base = t ? 'https://oauth.reddit.com' : 'https://www.reddit.com';
-    const headers = t ? { authorization: `Bearer ${t}` } : {};
+    if (!t) throw new Error('Reddit token request failed — check the approved credentials');
+    const base = 'https://oauth.reddit.com';
+    const headers = { authorization: `Bearer ${t}` };
     const out = [];
     for (const sub of SUBS) {
       try {
