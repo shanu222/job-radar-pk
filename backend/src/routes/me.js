@@ -4,9 +4,11 @@ import { query } from '../db.js';
 import rateLimit from 'express-rate-limit';
 import { requireAuth, requireAccess, userView } from '../auth.js';
 import { complete, takeAiCall, aiAvailable } from '../lib/ai.js';
+import { userLanguages } from '../lib/eligibility.js';
 import { extractText, buildProfileFromCV } from '../lib/cvparse.js';
 import { matchJobsForUser } from '../jobs/matching.js';
 import { searchForUser } from '../jobs/personalSearch.js';
+import { enqueueEnrich } from '../jobs/enrich.js';
 import { config } from '../config.js';
 
 const r = Router();
@@ -22,12 +24,14 @@ r.post('/cv', requireAuth, requireAccess, cvLimiter, upload.single('cv'), async 
   if (!text || text.trim().length < 80) return res.status(400).json({ error: 'Could not read text from this CV. If it is a scanned image, upload a text-based PDF or DOCX.' });
   const profile = await buildProfileFromCV(text);
   const { rows } = await query(
-    `UPDATE users SET cv_text = $2, skills = $3, titles = $4, experience_years = $5 WHERE id = $1 RETURNING *`,
-    [req.user.id, text.slice(0, 50000), profile.skills, profile.titles, profile.experience_years]
+    `UPDATE users SET cv_text = $2, skills = $3, titles = $4, experience_years = $5, languages = $6 WHERE id = $1 RETURNING *`,
+    [req.user.id, text.slice(0, 50000), profile.skills, profile.titles, profile.experience_years, userLanguages({ ...req.user, cv_text: text, skills: profile.skills })]
   );
   // Search Google Jobs (LinkedIn, Indeed, Rozee…) with this CV's titles in the background
   const searching = !!config.rapidApiKey;
   if (searching) searchForUser(rows[0]).catch((e) => console.warn('[cv] personal search:', e.message));
+  // Read the full ads of the best matches now, so their details are ready when the user looks
+  matchJobsForUser(rows[0], { limit: 15 }).then((js) => enqueueEnrich(js.filter((j) => !j.details_status).map((j) => j.id))).catch(() => {});
   res.json({ user: await userView(rows[0]), extracted: profile, searching });
 });
 
@@ -35,12 +39,13 @@ r.post('/cv', requireAuth, requireAccess, cvLimiter, upload.single('cv'), async 
 r.get('/matches', requireAuth, requireAccess, async (req, res) => {
   const jobs = await matchJobsForUser(req.user, {
     limit: Math.min(100, Number(req.query.limit) || 60),
-    minScore: Number(req.query.minScore) || 35,
+    minScore: Number(req.query.minScore) || 40,
     category: req.query.category || undefined,
     country: req.query.country || undefined,
     remoteOnly: req.query.remote === 'true',
     deadlineWithinDays: req.query.closing ? Number(req.query.closing) : undefined,
   });
+  enqueueEnrich(jobs.slice(0, 20).filter((j) => !j.details_status).map((j) => j.id));
   res.json({ jobs, profileReady: !!(req.user.skills?.length || req.user.titles?.length) });
 });
 

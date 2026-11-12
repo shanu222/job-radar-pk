@@ -97,6 +97,23 @@ function timeZoneCountries(text) {
   return [...out];
 }
 
+// Phrases in the ad body that state where applicants must be
+const HINT_RES = [
+  /\b(?:job )?location\s*[:\-–]\s*([^\n]{2,80})/gi,
+  /\bterritor(?:y|ies)\s*[:\-–]\s*([^\n]{2,80})/gi,
+  /\bremote\s*[(\[]\s*([^)\]\n]{2,40})[)\]]/gi,
+  /\bremote\s*[-–,]\s*([a-z .&/]{2,40})/gi,
+  /\bremote (?:in|from|within|across) (?:the )?([a-z ,.&/]{2,50})/gi,
+  /\b(?:must|should|need to|required to)? ?(?:be )?(?:based|located|living|residing|resident) (?:in|within) (?:the )?([a-z ,.&/]{2,60})/gi,
+  /\b(?:eligible|authori[sz]ed|right) to work in (?:the )?([a-z ,.&/]{2,50})/gi,
+  /\b(us|u\.s\.|uk|eu|european|canadian|australian)[- ]based\b/gi,
+];
+function locationHints(desc) {
+  const out = [];
+  for (const re of HINT_RES) { re.lastIndex = 0; let m; while ((m = re.exec(desc)) && out.length < 12) out.push(m[1].toLowerCase()); }
+  return out.join(' | ');
+}
+
 /**
  * Location eligibility tokens for a normalized job.
  * job: { country: 'PK'|'INTL', is_remote, location, description, restriction_codes? }
@@ -115,20 +132,62 @@ export function locationEligibility(job) {
     return tokens.size ? [...tokens] : ['UNKNOWN'];
   }
 
-  // Remote: read restrictions from the location field first, then from the description
+  // Remote: read restrictions from the location field, then from what the ad body says
   for (const [re, t] of PLACE_PATTERNS) if (re.test(loc)) tokens.add(t);
   for (const c of timeZoneCountries(`${loc} ${desc}`)) tokens.add(c);
-  const restrictedInText = /\b(only|must (be )?(located|based|reside)|residents? of|located in|based in|eligible to work in|authori[sz]ed to work in)\b/.test(desc);
+  if (!tokens.size && (GENERIC.test(loc) || WORLDWIDE.test(loc))) {
+    const hints = locationHints(desc);
+    const openAnywhere = /\b(hire|hiring|work|working|remote|candidates|applicants|team members?|people|talent)\b[^.\n]{0,40}\b(anywhere|worldwide|world-wide|any country|all countries|around the (world|globe))\b/.test(desc);
+    if (openAnywhere && !hints) tokens.add('WORLD');
+    if (hints) {
+      if (WORLDWIDE.test(hints)) tokens.add('WORLD');
+      for (const [re, t] of PLACE_PATTERNS) if (re.test(hints)) tokens.add(t);
+      if (tokens.has('WORLD') && tokens.size > 1 && !/\bworldwide\b|\banywhere\b/.test(hints)) tokens.delete('WORLD');
+    }
+  }
   if (!tokens.size) {
-    if (WORLDWIDE.test(loc) || (GENERIC.test(loc) && !restrictedInText)) tokens.add('WORLD');
+    if (WORLDWIDE.test(loc)) tokens.add('WORLD');
     else if (GENERIC.test(loc)) {
-      for (const [re, t] of PLACE_PATTERNS) if (re.test(desc.slice(0, 1500))) tokens.add(t);
-      if (!tokens.size) tokens.add('WORLD');
+      // Nothing stated: boards that mostly list jobs for one region default to that region
+      if (job.region_hint?.length) for (const t of job.region_hint) tokens.add(t);
+      else tokens.add('WORLD');
     } else tokens.add('UNKNOWN');
   } else if (WORLDWIDE.test(loc) && !/\bonly\b/.test(loc)) {
     tokens.add('WORLD'); // e.g. "Worldwide (preference for EU)"
   }
   return [...tokens];
+}
+
+// ── Languages ───────────────────────────────────────────────────────────────
+// Non-English languages a job requires ("German speaking", "fluent in French", "Arabic is a must").
+const LANGS = ['german', 'french', 'spanish', 'italian', 'dutch', 'portuguese', 'polish', 'swedish', 'danish', 'norwegian', 'finnish',
+  'czech', 'romanian', 'hungarian', 'greek', 'turkish', 'russian', 'ukrainian', 'hebrew', 'arabic', 'japanese', 'chinese', 'mandarin',
+  'cantonese', 'korean', 'thai', 'vietnamese', 'indonesian', 'malay', 'hindi', 'bengali', 'persian', 'farsi', 'pashto', 'sindhi', 'punjabi', 'urdu'];
+const L = LANGS.join('|');
+const LANG_REQ = [
+  new RegExp(`\\b(${L})[- ]speaking\\b`, 'g'),
+  new RegExp(`\\b(?:fluent|fluency|native|proficient|proficiency|business[- ]level|excellent|strong|professional)\\s+(?:in\\s+|level\\s+)?(?:written and spoken |spoken and written |command of )?(${L})\\b`, 'g'),
+  new RegExp(`\\b(${L})\\s*(?:\\((?:c1|c2|b2|native)\\)|(?:language )?(?:is |are )?(?:required|mandatory|essential|a must|necessary))`, 'g'),
+  new RegExp(`\\b(${L})\\s+(?:and|&)\\s+english\\b(?=[^.]{0,40}(?:required|fluent|essential|must))`, 'g'),
+  /\b(deutsch)(?:kenntnisse|e? sprachkenntnisse)\b/g,
+];
+const LANG_NORM = { mandarin: 'chinese', cantonese: 'chinese', farsi: 'persian', deutsch: 'german' };
+
+export function requiredLanguages(title, description) {
+  const t = `${title || ''}\n${String(description || '').slice(0, 6000)}`.toLowerCase();
+  const out = new Set();
+  for (const re of LANG_REQ) { re.lastIndex = 0; let m; while ((m = re.exec(t))) out.add(LANG_NORM[m[1]] || m[1]); }
+  out.delete('english');
+  return [...out];
+}
+
+/** Languages a person speaks, from their CV text and skills (English and Urdu assumed for Pakistan). */
+export function userLanguages(user) {
+  const out = new Set(['english']);
+  if ((user.country || 'PK') === 'PK') out.add('urdu');
+  const t = `${user.cv_text || ''} ${(user.skills || []).join(' ')}`.toLowerCase();
+  for (const l of LANGS) if (new RegExp(`\\b${l}\\b`).test(t)) out.add(LANG_NORM[l] || l);
+  return [...out];
 }
 
 // ── Domicile (Pakistani government jobs) ─────────────────────────────────────
@@ -166,10 +225,11 @@ export function canApplyDomicile(domiciles, userDomicile) {
 }
 
 /** SQL fragment + params for "jobs this user can apply for". Push params onto `params`. */
-export function eligibilitySql(params, { country, domicile }) {
+export function eligibilitySql(params, { country, domicile, languages }) {
   params.push(userTokens(country));
   const tok = `$${params.length}`;
-  let sql = `(eligible && ${tok}::text[])`;
+  params.push(languages?.length ? languages : ['english', ...((country || 'PK') === 'PK' ? ['urdu'] : [])]);
+  let sql = `(eligible && ${tok}::text[]) AND (languages = '{}' OR languages <@ $${params.length}::text[])`;
   if ((country || 'PK') === 'PK') {
     if (domicile) {
       params.push(domicile);

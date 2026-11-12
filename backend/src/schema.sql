@@ -169,3 +169,10 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS domicile TEXT;       -- punjab | sind
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS eligible TEXT[] NOT NULL DEFAULT '{}';   -- who may apply (see lib/eligibility.js)
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS domiciles TEXT[] NOT NULL DEFAULT '{}';  -- govt jobs: provinces allowed
 CREATE INDEX IF NOT EXISTS jobs_eligible_idx ON jobs USING GIN (eligible);
+
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS languages TEXT[] NOT NULL DEFAULT '{}';     -- non-English languages required
+ALTER TABLE users ADD COLUMN IF NOT EXISTS languages TEXT[];                         -- languages the user speaks
+-- Full ad, downloaded and extracted (summary, requirements, how to apply, posts…)
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS details JSONB;
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS details_status TEXT;                       -- null | done | failed
+ALTER TABLE jobs ADD COLUMN IF NOT EXISTS details_at TIMESTAMPTZ;

@@ -20,14 +20,28 @@ export async function getText(url, opts = {}) {
   return res.text();
 }
 
-export const stripHtml = (html) =>
-  String(html || '')
-    .replace(/<(br|\/p|\/li|\/div|\/h\d)\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;|&rsquo;/g, "'").replace(/&quot;/g, '"')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n\s*\n+/g, '\n\n')
+const ENTITIES = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", rsquo: "'", lsquo: "'", rdquo: '"', ldquo: '"', ndash: '–', mdash: '—', hellip: '…', bull: '•', middot: '·' };
+const decodeEntities = (s) => s
+  .replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n)))
+  .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
+  .replace(/&([a-z]+);/gi, (m, n) => ENTITIES[n.toLowerCase()] ?? m);
+
+/** HTML (possibly entity-encoded HTML, as some boards send) → clean plain text with line breaks. */
+export const stripHtml = (html) => {
+  let s = String(html || '');
+  // Encoded markup like "&lt;div&gt;" → decode first so the tags can be removed
+  for (let i = 0; i < 2 && /&lt;\/?[a-z]/i.test(s); i++) s = decodeEntities(s);
+  s = s
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<li[^>]*>/gi, '\n• ')
+    .replace(/<(br|\/p|\/li|\/div|\/h\d|\/tr|\/ul|\/ol)\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ');
+  return decodeEntities(s)
+    .replace(/[ \t ]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
+};
 
 export const absUrl = (href, base) => {
   try { return new URL(href, base).toString(); } catch { return null; }

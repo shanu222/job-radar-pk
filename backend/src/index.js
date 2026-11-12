@@ -14,9 +14,13 @@ import adminRoutes from './routes/admin.js';
 import emailActionRoutes from './routes/emailActions.js';
 import { runIngest, backfillEligibility } from './jobs/ingest.js';
 import { runReminders } from './jobs/reminders.js';
+import { enrichTopMatches } from './jobs/enrich.js';
+import { matchJobsForUser } from './jobs/matching.js';
 import { seedAdmin } from './jobs/seedAdmin.js';
 import { emailEnabled } from './lib/email.js';
 import { firebaseEnabled } from './lib/firebase.js';
+
+process.on('unhandledRejection', (e) => console.error('[unhandledRejection]', e?.message || e));
 
 if (!config.databaseUrl) {
   console.error('DATABASE_URL is not set. On Railway: add a PostgreSQL database and set DATABASE_URL=${{Postgres.DATABASE_URL}} on this service.');
@@ -77,6 +81,8 @@ try {
 app.listen(config.port, () => console.log(`JobRadar API on :${config.port}`));
 backfillEligibility().catch((e) => console.error('[eligibility backfill]', e.message));
 
-cron.schedule(config.ingestCron, () => runIngest().catch((e) => console.error('[cron ingest]', e)));
+cron.schedule(config.ingestCron, () => runIngest()
+  .then(() => enrichTopMatches(matchJobsForUser))
+  .catch((e) => console.error('[cron ingest]', e)));
 cron.schedule(config.reminderCron, () => runReminders().catch((e) => console.error('[cron reminders]', e)));
 if (config.runIngestOnBoot) setTimeout(() => runIngest().catch(console.error), 5000);

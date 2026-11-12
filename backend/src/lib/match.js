@@ -51,5 +51,7 @@ export function scoreJob(job, profile) {
   }
 
   const score = Math.round(100 * (0.55 * skillScore + 0.25 * titleScore + 0.1 * expScore + 0.1 * prefScore));
-  return { score, matchedSkills: matched, missingSkills: jobSkills.filter((s) => !userSkills.has(s)).slice(0, 6) };
+  // "Relevant" = the job actually asks for something this person has (a skill, or their kind of role)
+  const relevant = matched.length >= 2 || (matched.length === 1 && jobSkills.length <= 4) || titleScore >= 0.34;
+  return { score, relevant, matchedSkills: matched, missingSkills: jobSkills.filter((s) => !userSkills.has(s)).slice(0, 6) };
 }

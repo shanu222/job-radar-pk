@@ -24,6 +24,13 @@ One place for **every job in Pakistan and international remote work** — govern
 - **Admin panel (`/admin`):** overview, payment review, users (make free, add days, suspend, make admin, delete), settings (free-for-everyone switch, price, days, payment accounts, AI provider/key/model, Resend email), jobs data, audit log of every admin action.
 - **Sign-in:** email + password, or Google via Firebase Authentication.
 
+## Jobs that fit the CV, with the full ad read
+
+- Pro users browse **only jobs that fit their CV** by default (toggle on Browse). A job must actually ask for the person's skills or kind of role, not just score above a number.
+- For matched jobs the app reads the **full advertisement**: for government listings it downloads the linked page or PDF (following "Download advertisement" links, respecting robots.txt); other sources already provide the full text. AI (with fallback to rules) extracts a summary, every post in consolidated ads (scale, seats, qualification, experience, age limit, quota), requirements, responsibilities, how to apply, fee, test service and deadline.
+- In consolidated government ads the post that fits the user's CV is picked and shown on the card ("Assistant Director (IT) — in: Consolidated Advertisement 12/2026").
+- Ads are read in the background when they show up in someone's matches or are opened, at most `ENRICH_DAILY_LIMIT` per day; results are stored once for everyone.
+
 ## Real jobs only: eligibility
 
 Every job is tagged with who can actually apply, and by default people only see those jobs (a toggle on Browse shows everything):

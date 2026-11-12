@@ -49,6 +49,7 @@ export const arbeitnow = {
         out.push({
           external_id: j.slug, title: j.title, company: j.company_name, location: j.location,
           country: 'INTL', category: j.remote ? 'remote' : 'private', is_remote: !!j.remote,
+          region_hint: ['EUROPE'], // Arbeitnow is a German board: "remote" almost always means within Europe
           description, tags: [...(j.tags || []), ...(j.job_types || [])], url: j.url,
           posted_at: new Date(j.created_at * 1000).toISOString(), deadline: dl(description),
         });

@@ -1,4 +1,5 @@
 import mammoth from 'mammoth';
+import { pdfToText } from './pdf.js';
 import { findSkills, findExperienceYears } from './skills.js';
 import { aiAvailable, complete, parseJSON } from './ai.js';
 
@@ -6,10 +7,8 @@ export async function extractText(buffer, mimetype, filename = '') {
   const name = filename.toLowerCase();
   const head = buffer.subarray(0, 5).toString('latin1');
   if (head.startsWith('%PDF')) {
-    // import lazily: pdf-parse's index runs a self-test when imported directly
-    const { default: pdf } = await import('pdf-parse/lib/pdf-parse.js');
-    const out = await pdf(buffer);
-    return out.text;
+    try { return await pdfToText(buffer, { maxPages: 15 }); }
+    catch { throw new Error('This PDF could not be read. Try saving it again as PDF, or upload a DOCX.'); }
   }
   if (head.startsWith('PK') && (name.endsWith('.docx') || mimetype.includes('wordprocessingml'))) {
     const out = await mammoth.extractRawText({ buffer });

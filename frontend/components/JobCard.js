@@ -51,13 +51,28 @@ export default function JobCard({ job, index = 0 }) {
             <DeadlineBadge deadline={job.deadline} daysLeft={job.days_left} compact />
           </div>
           <Link href={`/jobs/${job.id}`} className="font-display text-[17px] font-semibold leading-snug text-ink after:absolute after:inset-0 group-hover:text-brand">
-            {job.title}
+            {job.matched_position && !job.matched_position.single && job.matched_position.title ? job.matched_position.title : job.title}
           </Link>
+          {job.matched_position && !job.matched_position.single && job.matched_position.title && (
+            <p className="mt-0.5 line-clamp-1 text-xs text-ink-soft">In: {job.title}</p>
+          )}
           <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ink-soft">
             {job.company && <span className="flex items-center gap-1"><Building2 size={14} />{job.company}</span>}
             {job.location && <span className="flex items-center gap-1"><MapPin size={14} />{job.location}</span>}
           </div>
-          {job.snippet && <p className="mt-2.5 line-clamp-2 text-sm text-ink-soft/90">{job.snippet}</p>}
+          {job.matched_position && (job.matched_position.bps || job.matched_position.count || job.matched_position.qualification) && (
+            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-ink">
+              {job.matched_position.bps && <span><b>{job.matched_position.bps}</b></span>}
+              {job.matched_position.count && <span>{job.matched_position.count} post{job.matched_position.count > 1 ? 's' : ''}</span>}
+              {job.matched_position.qualification && <span className="line-clamp-1 text-ink-soft">{job.matched_position.qualification}</span>}
+            </p>
+          )}
+          {(job.summary || job.snippet) && <p className="mt-2.5 line-clamp-2 text-sm text-ink-soft/90">{job.summary || job.snippet}</p>}
+          {job.highlights?.length > 0 && (
+            <ul className="mt-2 space-y-0.5 text-xs text-ink-soft">
+              {job.highlights.slice(0, 2).map((h) => <li key={h} className="line-clamp-1">• {h}</li>)}
+            </ul>
+          )}
           {job.matchedSkills?.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {job.matchedSkills.slice(0, 6).map((s) => <span key={s} className="chip bg-brand-tint text-brand-dark">✓ {s}</span>)}

@@ -18,7 +18,7 @@ const NAVISH = /^(home|about|contact|login|sign ?in|register|faq|downloads?|news
 const DATE_ANY = /(\d{1,2}[-/.]\d{1,2}[-/.]\d{2,4}|\d{4}-\d{2}-\d{2}|\d{1,2}(?:st|nd|rd|th)?\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,\s]+\d{4}|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{1,2}(?:st|nd|rd|th)?,?\s+\d{4})/gi;
 
 const robotsCache = new Map();
-async function allowedByRobots(url) {
+export async function allowedByRobots(url) {
   const u = new URL(url);
   if (!robotsCache.has(u.origin)) {
     let rules = [];

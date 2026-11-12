@@ -1,12 +1,97 @@
 'use client';
 import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Building2, MapPin, CalendarDays, ExternalLink, Bookmark, BookmarkCheck, Wallet } from 'lucide-react';
+import { ArrowLeft, Building2, MapPin, CalendarDays, ExternalLink, Bookmark, BookmarkCheck, Wallet, Loader2, ListChecks, ClipboardList, Send, Users, ChevronDown } from 'lucide-react';
 import { api, CATEGORY, SOURCE_LABEL, fmtDate, timeAgo } from '@/lib/api';
 import { DeadlineBadge, MatchRing } from '@/components/JobCard';
 import { useAuth } from '@/components/AuthProvider';
 import AiTools from '@/components/AiTools';
 import { eligibilityLabel } from '@/lib/places';
+
+function Section({ icon: Icon, title, children }) {
+  return (
+    <section className="mb-7">
+      <h2 className="mb-3 flex items-center gap-2 font-display text-lg font-bold"><Icon size={18} className="text-brand" />{title}</h2>
+      {children}
+    </section>
+  );
+}
+const Bullets = ({ items }) => <ul className="space-y-1.5 text-[15px] leading-relaxed text-ink/90">{items.map((x) => <li key={x} className="flex gap-2"><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-brand" />{x}</li>)}</ul>;
+
+function Details({ job }) {
+  const d = job.details && !job.details.error ? job.details : null;
+  const [showAd, setShowAd] = useState(false);
+  const mp = job.matched_position;
+  const raw = <div className="whitespace-pre-line text-[15px] leading-relaxed text-ink/90">{job.description || 'Open the original posting for full details.'}</div>;
+  if (!d) {
+    return (
+      <>
+        {job.details_pending && (
+          <p className="mb-5 flex items-center gap-2 rounded-xl bg-paper px-4 py-3 text-sm text-ink-soft"><Loader2 size={16} className="animate-spin text-brand" />Reading the full advertisement — requirements and how to apply will appear here in a moment.</p>
+        )}
+        {raw}
+      </>
+    );
+  }
+  const posts = d.positions || [];
+  return (
+    <div>
+      {d.summary && <p className="mb-7 text-[16px] leading-relaxed">{d.summary}</p>}
+      {mp && posts.length > 1 && (
+        <div className="mb-7 rounded-2xl border-2 border-brand/30 bg-brand-tint/40 p-5">
+          <p className="label text-brand-dark">The post that fits your CV</p>
+          <p className="mt-1 font-display text-lg font-bold">{mp.title}{mp.bps ? ` (${mp.bps})` : ''}</p>
+          <dl className="mt-2 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
+            {[['Posts', mp.count], ['Qualification', mp.qualification], ['Experience', mp.experience], ['Age limit', mp.age_limit], ['Quota / domicile', mp.domicile_quota], ['Pay', mp.salary]].filter(([, v]) => v).map(([k, v]) => (
+              <div key={k} className={k === 'Qualification' ? 'sm:col-span-2' : ''}><dt className="inline text-ink-soft">{k}: </dt><dd className="inline">{v}</dd></div>
+            ))}
+          </dl>
+        </div>
+      )}
+      {posts.length > 1 && (
+        <Section icon={Users} title={`Posts in this advertisement (${posts.length})`}>
+          <div className="overflow-x-auto rounded-xl border border-line">
+            <table className="w-full min-w-[520px] text-sm">
+              <thead className="bg-paper text-left text-xs uppercase tracking-wider text-ink-soft"><tr><th className="p-3">Post</th><th className="p-3">Scale</th><th className="p-3">Seats</th><th className="p-3">Qualification</th></tr></thead>
+              <tbody className="divide-y divide-line">
+                {posts.map((p, i) => (
+                  <tr key={i} className={mp && p.title === mp.title ? 'bg-brand-tint/50 font-medium' : ''}>
+                    <td className="p-3">{p.title}</td><td className="p-3">{p.bps || '—'}</td><td className="p-3">{p.count ?? '—'}</td><td className="p-3 text-ink-soft">{p.qualification || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      )}
+      {posts.length === 1 && (posts[0].qualification || posts[0].experience || posts[0].age_limit) && (
+        <dl className="mb-7 grid gap-x-6 gap-y-1 rounded-xl bg-paper p-4 text-sm sm:grid-cols-2">
+          {[['Scale', posts[0].bps], ['Posts', posts[0].count], ['Qualification', posts[0].qualification], ['Experience', posts[0].experience], ['Age limit', posts[0].age_limit], ['Quota / domicile', posts[0].domicile_quota], ['Pay', posts[0].salary]].filter(([, v]) => v).map(([k, v]) => (
+            <div key={k} className={k === 'Qualification' ? 'sm:col-span-2' : ''}><dt className="inline text-ink-soft">{k}: </dt><dd className="inline">{v}</dd></div>
+          ))}
+        </dl>
+      )}
+      {d.requirements?.length > 0 && <Section icon={ListChecks} title="Requirements"><Bullets items={d.requirements} /></Section>}
+      {d.responsibilities?.length > 0 && <Section icon={ClipboardList} title="What you’ll do"><Bullets items={d.responsibilities} /></Section>}
+      {(d.how_to_apply?.length > 0 || d.apply_url) && (
+        <Section icon={Send} title="How to apply">
+          {d.how_to_apply?.length > 0 && <ol className="list-decimal space-y-1.5 pl-5 text-[15px] leading-relaxed text-ink/90">{d.how_to_apply.map((x) => <li key={x}>{x}</li>)}</ol>}
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+            {d.test_service && <span><span className="text-ink-soft">Test by: </span><b>{d.test_service}</b></span>}
+            {d.fee && <span><span className="text-ink-soft">Fee: </span><b>{d.fee}</b></span>}
+            {d.applicant_location && <span><span className="text-ink-soft">Applicants from: </span><b>{d.applicant_location}</b></span>}
+          </div>
+          {d.apply_url && <a href={d.apply_url} target="_blank" rel="noopener noreferrer" className="btn-primary mt-4">Apply now <ExternalLink size={15} /></a>}
+        </Section>
+      )}
+      <button onClick={() => setShowAd(!showAd)} className="mt-2 flex items-center gap-1 text-sm font-semibold text-ink-soft hover:text-ink">
+        <ChevronDown size={16} className={`transition ${showAd ? 'rotate-180' : ''}`} />{showAd ? 'Hide' : 'Show'} the original listing text
+      </button>
+      {showAd && <div className="mt-4 rounded-xl bg-paper p-4">{raw}</div>}
+      <p className="mt-6 text-xs text-ink-soft">Details were read from the advertisement{d.method === 'ai' ? ' with AI' : ''} and may contain mistakes — always confirm on the official ad before applying.</p>
+    </div>
+  );
+}
 
 export default function JobDetail({ params }) {
   const { id } = use(params);
@@ -14,7 +99,17 @@ export default function JobDetail({ params }) {
   const [error, setError] = useState('');
   const { user, savedIds, toggleSave } = useAuth();
 
-  useEffect(() => { api(`/api/jobs/${id}`).then((d) => setJob(d.job)).catch((e) => setError(e.message)); }, [id, user]);
+  useEffect(() => {
+    let stop = false, tries = 0, timer;
+    const load = () => api(`/api/jobs/${id}`).then((d) => {
+      if (stop) return;
+      setJob(d.job);
+      // The full advertisement is being read in the background — check again shortly
+      if (d.job.details_pending && tries++ < 12) timer = setTimeout(load, 4000);
+    }).catch((e) => !stop && setError(e.message));
+    load();
+    return () => { stop = true; clearTimeout(timer); };
+  }, [id, user]);
 
   if (error) return <div className="mx-auto max-w-3xl px-4 py-16 text-center text-ink-soft">{error}</div>;
   if (!job) return <div className="mx-auto max-w-3xl px-4 py-16"><div className="card h-64 animate-pulse" /></div>;
@@ -37,7 +132,7 @@ export default function JobDetail({ params }) {
             {job.salary && <span className="flex items-center gap-1.5"><Wallet size={15} />{job.salary}</span>}
           </div>
           <hr className="my-6 border-line" />
-          <div className="whitespace-pre-line text-[15px] leading-relaxed text-ink/90">{job.description || 'Open the original posting for full details.'}</div>
+          <Details job={job} />
         </article>
         <aside className="space-y-4">
           <div className="card sticky top-24 p-5">

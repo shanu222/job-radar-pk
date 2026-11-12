@@ -113,3 +113,33 @@ test('government jobs: domicile from the ad and the commission', () => {
   assert.equal(canApplyDomicile(['ALL'], 'gb'), true);
   assert.equal(canApplyDomicile([], 'gb'), true);
 });
+
+import { stripHtml } from '../src/lib/http.js';
+import { requiredLanguages } from '../src/lib/eligibility.js';
+import { scoreWithPositions } from '../src/jobs/matching.js';
+
+test('ad text cleanup, languages and EU-only remote jobs', () => {
+  assert.equal(stripHtml('&lt;div class=&quot;x&quot;&gt;&lt;p&gt;Hi &amp;amp; welcome&lt;/p&gt;&lt;/div&gt;'), 'Hi & welcome');
+  assert.deepEqual(requiredLanguages('Account Executive – French Speaking (m/f/x)', ''), ['french']);
+  assert.deepEqual(requiredLanguages('Engineer', 'Fluent German and English required'), ['german']);
+  assert.deepEqual(requiredLanguages('Engineer', 'Excellent English communication'), []);
+  const remote = (location, description, region_hint) => locationEligibility({ country: 'INTL', is_remote: true, location, description, region_hint });
+  assert.equal(remote('Remote job', 'Location: EU (Remote). Territories: France / Benelux', ['EUROPE']).includes('WORLD'), false);
+  assert.equal(remote('Remote', 'Nothing about location.', ['EUROPE']).includes('WORLD'), false); // German board default
+  assert.ok(remote('Remote', 'We hire people anywhere in the world.', ['EUROPE']).includes('WORLD'));
+});
+
+test('consolidated ads: the post that fits the CV is chosen', () => {
+  const user = { skills: ['python', 'sql', 'django'], titles: ['Software Engineer'], experience_years: 3 };
+  const job = { title: 'Consolidated Advertisement 12/2026', description: 'Various posts', tags: [], category: 'govt',
+    details: { positions: [
+      { title: 'Lecturer English', qualification: 'MA English' },
+      { title: 'Assistant Director (IT)', qualification: 'BS Computer Science', experience: '2 years Python, SQL' },
+      { title: 'Inspector Customs', qualification: 'Bachelor' },
+    ], requirements: [] } };
+  const r = scoreWithPositions(job, user);
+  assert.equal(r.matched_position.title, 'Assistant Director (IT)');
+  assert.equal(r.relevant, true);
+  const none = scoreWithPositions({ ...job, details: { positions: [{ title: 'Staff Nurse', qualification: 'Nursing' }, { title: 'Driver', qualification: 'Licence' }], requirements: [] } }, user);
+  assert.equal(none.relevant, false);
+});
