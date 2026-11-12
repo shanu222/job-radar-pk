@@ -84,7 +84,18 @@ r.get('/payment/screenshot', async (req, res) => {
   res.send(p.screenshot);
 });
 
+// The confirm form may only be submitted from this server's own page (blocks cross-site form posts)
+function sameOrigin(req) {
+  const origin = req.get('origin') || '';
+  if (!origin || origin === 'null') return true; // some mail apps' in-app browsers omit it; the signed token still protects
+  try {
+    const h = new URL(origin).host;
+    return h === req.get('host') || h === req.get('x-forwarded-host') || h === new URL(config.publicApiUrl).host;
+  } catch { return false; }
+}
+
 r.post('/payment', async (req, res) => {
+  if (!sameOrigin(req)) return invalid(res);
   let pid;
   try { pid = verifyPaymentLinkToken(req.body?.t); } catch { return invalid(res); }
   const action = req.body?.a === 'reject' ? 'reject' : req.body?.a === 'approve' ? 'approve' : null;

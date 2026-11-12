@@ -35,6 +35,10 @@ const app = express();
 app.set('trust proxy', 1); // Railway sits behind one proxy — needed for correct per-IP rate limits
 app.disable('x-powered-by');
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'same-site' } }));
+// One-click payment pages linked from the admin email. They are pages served by this API and post back
+// to themselves, so they sit before the CORS check (which is only for the website calling the API).
+app.use('/email-actions', emailActionRoutes);
+
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true);
@@ -52,7 +56,6 @@ app.get('/health', async (_req, res) => {
   catch { res.status(500).json({ ok: false }); }
 });
 
-app.use('/email-actions', emailActionRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/admin', adminRoutes);
