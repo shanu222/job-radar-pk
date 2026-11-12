@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Radar, Menu, X, LogOut, Shield, Sparkles } from 'lucide-react';
 import { useAuth } from './AuthProvider';
@@ -14,16 +14,18 @@ const LINKS = [
 
 export default function Navbar() {
   const path = usePathname();
-  const { user, signOut, ready } = useAuth();
+  const { user, signOut: doSignOut, ready } = useAuth();
+  const router = useRouter();
+  const signOut = () => { doSignOut(); router.replace('/'); };
   const [open, setOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 border-b border-line/70 bg-paper/85 backdrop-blur-md">
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
+        <Link href={user ? '/jobs' : '/'} className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-ink text-mint"><Radar size={18} /></span>
           JobRadar<span className="text-brand">PK</span>
         </Link>
-        <div className="hidden items-center gap-1 md:flex">
+        <div className={`hidden items-center gap-1 ${user ? 'md:flex' : ''}`}>
           {LINKS.map(([href, label]) => (
             <Link key={href} href={href}
               className={`rounded-lg px-3 py-2 text-sm font-medium transition ${path.startsWith(href) ? 'bg-ink text-white' : 'text-ink-soft hover:text-ink hover:bg-white'}`}>
@@ -44,8 +46,8 @@ export default function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/login" className="btn-ghost">Sign in</Link>
-              <Link href="/register" className="btn-primary">Get started</Link>
+              {path !== '/login' && path !== '/' && <Link href="/login" className="btn-ghost">Sign in</Link>}
+              {path !== '/register' && <Link href="/register" className="btn-primary">Create free account</Link>}
             </>
           ))}
         </div>
@@ -53,7 +55,7 @@ export default function Navbar() {
       </nav>
       {open && (
         <div className="border-t border-line bg-paper px-4 py-3 md:hidden" onClick={() => setOpen(false)}>
-          {[...LINKS, ...(user ? [['/profile', 'Profile & CV'], ['/billing', user.access?.active ? 'Billing' : 'Upgrade to Pro'], ...(user.role === 'admin' ? [['/admin', 'Admin panel']] : [])] : [['/login', 'Sign in'], ['/register', 'Create account']])].map(([href, label]) => (
+          {[...(user ? LINKS : []), ...(user ? [['/profile', 'Profile & CV'], ['/billing', user.access?.active ? 'Billing' : 'Upgrade to Pro'], ...(user.role === 'admin' ? [['/admin', 'Admin panel']] : [])] : [['/login', 'Sign in'], ['/register', 'Create account']])].map(([href, label]) => (
             <Link key={href} href={href} className="block rounded-lg px-3 py-2.5 font-medium hover:bg-white">{label}</Link>
           ))}
           {user && <button onClick={signOut} className="block w-full rounded-lg px-3 py-2.5 text-left font-medium text-danger">Sign out</button>}

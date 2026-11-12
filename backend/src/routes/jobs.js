@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../db.js';
-import { optionalAuth, accessFor } from '../auth.js';
+import { requireAuth, accessFor } from '../auth.js';
 import { scoreJob } from '../lib/match.js';
 import { eligibilitySql, userTokens, userLanguages } from '../lib/eligibility.js';
 import { ALL_SOURCES } from '../sources/index.js';
@@ -13,7 +13,7 @@ const LIST_COLS = `id, source, title, company, location, country, category, is_r
   details->>'summary' AS summary, CASE WHEN details ? 'summary' THEN NULL ELSE left(description, 280) END AS snippet, (deadline - CURRENT_DATE) AS days_left`;
 
 /** GET /api/jobs — search + filters + pagination */
-r.get('/jobs', optionalAuth, async (req, res) => {
+r.get('/jobs', requireAuth, async (req, res) => {
   const { q, category, country, remote, source, deadline, sort = 'newest' } = req.query;
   const page = Math.max(1, Number(req.query.page) || 1);
   const size = Math.min(50, Number(req.query.size) || 20);
@@ -78,7 +78,7 @@ r.get('/jobs/stats', async (_req, res) => {
 });
 
 /** Deadlines calendar: jobs with a known deadline in the next N days, grouped by date */
-r.get('/deadlines', optionalAuth, async (req, res) => {
+r.get('/deadlines', requireAuth, async (req, res) => {
   const days = Math.min(90, Number(req.query.days) || 14);
   const params = [days];
   let extra = '';
@@ -96,7 +96,7 @@ r.get('/deadlines', optionalAuth, async (req, res) => {
   res.json({ days, groups: Object.entries(groups).map(([date, jobs]) => ({ date, jobs })) });
 });
 
-r.get('/jobs/:id', optionalAuth, async (req, res) => {
+r.get('/jobs/:id', requireAuth, async (req, res) => {
   const { rows } = await query(`SELECT *, (deadline - CURRENT_DATE) AS days_left FROM jobs WHERE id = $1`, [req.params.id]);
   if (!rows[0]) return res.status(404).json({ error: 'Job not found' });
   const { search, ...job } = rows[0];
