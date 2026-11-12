@@ -4,7 +4,7 @@ import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
 import { query } from '../db.js';
 import { signToken, requireAuth, userView } from '../auth.js';
-import { verifyFirebaseIdToken, firebaseEnabled } from '../lib/firebase.js';
+import { verifyGoogleSignIn, firebaseEnabled } from '../lib/firebase.js';
 import { COUNTRIES, PROVINCES } from '../lib/eligibility.js';
 import { searchForUser } from '../jobs/personalSearch.js';
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
@@ -60,7 +60,7 @@ r.post('/google', loginLimiter, async (req, res) => {
   if (!firebaseEnabled()) return res.status(503).json({ error: 'Google sign-in is not set up yet' });
   const idToken = typeof req.body?.idToken === 'string' ? req.body.idToken : '';
   let g;
-  try { g = await verifyFirebaseIdToken(idToken); }
+  try { g = await verifyGoogleSignIn(idToken); }
   catch { return res.status(401).json({ error: 'Google sign-in failed. Please try again.' }); }
   if (!g.email || g.email_verified !== true) return res.status(401).json({ error: 'Your Google email is not verified' });
   const em = String(g.email).toLowerCase();
