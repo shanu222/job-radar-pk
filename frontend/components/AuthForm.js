@@ -22,6 +22,8 @@ export default function AuthForm({ mode }) {
   const [busy, setBusy] = useState(false);
   const [googleBusy, setGoogleBusy] = useState(false);
   const [gisFailed, setGisFailed] = useState(false);
+  // Set when the server needs the emailed 6-digit code before signing in
+  const [verify, setVerify] = useState(null);
   const toast = useToast();
 
   const finishGoogle = async (idToken) => {
@@ -48,7 +50,10 @@ export default function AuthForm({ mode }) {
       const { token, user } = await api(`/api/auth/${isReg ? 'register' : 'login'}`, { method: 'POST', body: isReg ? { ...form, domicile: form.country === 'PK' ? form.domicile : undefined } : { email: form.email, password: form.password }, auth: false });
       signIn(token, user);
       router.replace(next || (user.role === 'admin' ? '/admin' : isReg ? '/billing' : '/jobs'));
-    } catch (err) { toast.error(err); } finally { setBusy(false); }
+    } catch (err) {
+      if (err.data?.needsVerification) setVerify({ email: err.data.email || form.email, sentTo: err.data.sentTo, isNew: isReg });
+      else toast.error(err);
+    } finally { setBusy(false); }
   }
 
   function onGoogleCredential(idToken) {
@@ -73,6 +78,8 @@ export default function AuthForm({ mode }) {
       <input className="input" type={type} required value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} {...extra} />
     </label>
   );
+
+  if (verify) return <VerifyEmail {...verify} onBack={() => setVerify(null)} onDone={(token, user) => { signIn(token, user); router.replace(next || (user.role === 'admin' ? '/admin' : verify.isNew ? '/billing' : '/jobs')); }} />;
 
   return (
     <div className="min-h-[calc(100vh-4rem)] px-4 py-8 sm:px-6 lg:py-12">
@@ -129,6 +136,59 @@ export default function AuthForm({ mode }) {
       </form>
       <div className="order-3 lg:hidden"><AuthShowcase compact /></div>
       </div>
+    </div>
+  );
+}
+
+function VerifyEmail({ email, sentTo, onBack, onDone }) {
+  const [code, setCode] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [wait, setWait] = useState(60);
+  const toast = useToast();
+
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const { token, user } = await api('/api/auth/verify', { method: 'POST', body: { email, code }, auth: false });
+      onDone(token, user);
+    } catch (err) { toast.error(err); setCode(''); } finally { setBusy(false); }
+  }
+
+  async function resend() {
+    try {
+      await api('/api/auth/verify/resend', { method: 'POST', body: { email }, auth: false });
+      toast.success('A new code is on its way');
+      setWait(60);
+    } catch (err) { toast.error(err); }
+  }
+
+  return (
+    <div className="min-h-[calc(100vh-4rem)] px-4 py-12 sm:px-6">
+      <form onSubmit={submit} className="card mx-auto w-full max-w-md space-y-5 p-6 sm:p-8">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Check your email</h1>
+          <p className="mt-1 text-sm text-ink-soft">We sent a 6-digit code to <b className="text-ink">{sentTo || email}</b>. Enter it below to confirm your email and sign in.</p>
+        </div>
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-medium">Verification code</span>
+          <input className="input tabular h-12 text-center text-2xl font-semibold tracking-[0.4em]" inputMode="numeric" autoComplete="one-time-code" autoFocus
+            required pattern="[0-9]{6}" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" />
+        </label>
+        <button disabled={busy || code.length !== 6} className="btn-primary h-11 w-full">{busy ? 'Checking…' : 'Verify and continue'}</button>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <button type="button" onClick={onBack} className="text-ink-soft hover:text-ink">Use a different email</button>
+          {wait > 0 ? <span className="tabular text-ink-soft">Resend code in {wait}s</span>
+            : <button type="button" onClick={resend} className="font-semibold text-brand">Resend code</button>}
+        </div>
+        <p className="text-xs text-ink-soft">The code expires in 15 minutes. Can’t find it? Check your spam or promotions folder.</p>
+      </form>
     </div>
   );
 }

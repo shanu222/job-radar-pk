@@ -18,10 +18,10 @@ export async function seedAdmin() {
   if (!user) {
     if (!password) { console.warn('[admin] ADMIN_EMAIL set but ADMIN_PASSWORD missing — admin not created'); return; }
     const hash = await bcrypt.hash(password, 12);
-    await query(`INSERT INTO users (email, name, password_hash, role) VALUES ($1, 'Admin', $2, 'admin')`, [email, hash]);
+    await query(`INSERT INTO users (email, name, password_hash, role, email_verified) VALUES ($1, 'Admin', $2, 'admin', TRUE)`, [email, hash]);
     console.log(`[admin] created admin account ${email}`);
   } else {
-    if (user.role !== 'admin') await query(`UPDATE users SET role = 'admin', token_version = token_version + 1 WHERE id = $1`, [user.id]);
+    if (user.role !== 'admin') await query(`UPDATE users SET role = 'admin', email_verified = TRUE, token_version = token_version + 1 WHERE id = $1`, [user.id]);
     if (pwChanged) {
       const hash = await bcrypt.hash(password, 12);
       await query('UPDATE users SET password_hash = $2, token_version = token_version + 1, disabled = FALSE WHERE id = $1', [user.id, hash]);

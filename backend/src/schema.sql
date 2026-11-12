@@ -176,3 +176,16 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS languages TEXT[];                    
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS details JSONB;
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS details_status TEXT;                       -- null | done | failed
 ALTER TABLE jobs ADD COLUMN IF NOT EXISTS details_at TIMESTAMPTZ;
+
+-- ── Email verification ─────────────────────────────────────────────────────
+-- Email/password accounts must confirm a 6-digit code once before they can sign in.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE;
+-- Google accounts (Google already verified the address) and admins never need a code
+UPDATE users SET email_verified = TRUE WHERE NOT email_verified AND (role = 'admin' OR google_uid IS NOT NULL);
+CREATE TABLE IF NOT EXISTS email_verification_codes (
+  user_id    INT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  code_hash  TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  sent_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  attempts   INT NOT NULL DEFAULT 0
+);

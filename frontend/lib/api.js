@@ -20,7 +20,7 @@ export async function api(path, { method = 'GET', body, form, auth = true } = {}
       : res.status === 429 ? 'Too many requests. Please wait a moment and try again.'
       : res.status >= 500 ? 'Something went wrong on our side. Please try again in a minute.'
       : 'Something went wrong. Please try again.';
-    throw Object.assign(new Error(msg), { status: res.status, userFacing: true });
+    throw Object.assign(new Error(msg), { status: res.status, userFacing: true, data });
   }
   return data;
 }

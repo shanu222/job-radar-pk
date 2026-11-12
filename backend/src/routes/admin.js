@@ -52,9 +52,10 @@ r.get('/users', wrap(async (req, res) => {
   if (filter === 'free') where.push('is_free');
   if (filter === 'admins') where.push(`role = 'admin'`);
   if (filter === 'disabled') where.push('disabled');
+  if (filter === 'unverified') where.push('NOT email_verified');
   const w = where.length ? `WHERE ${where.join(' AND ')}` : '';
   const { rows } = await query(
-    `SELECT id, email, name, role, is_free, paid_until, disabled, email_alerts, google_uid IS NOT NULL AS google,
+    `SELECT id, email, name, role, is_free, paid_until, disabled, email_alerts, email_verified, google_uid IS NOT NULL AS google,
             cv_text IS NOT NULL AS has_cv, skills, titles, created_at, last_login
        FROM users ${w} ORDER BY created_at DESC LIMIT 50 OFFSET ${(page - 1) * 50}`, params);
   const { rows: [{ count }] } = await query(`SELECT count(*)::int FROM users ${w}`, params);
@@ -72,6 +73,7 @@ const userPatch = z.object({
   skills: z.array(z.string().max(60)).max(80).optional(),
   titles: z.array(z.string().max(100)).max(10).optional(),
   logout_everywhere: z.boolean().optional(),
+  email_verified: z.literal(true).optional(),
 }).strict();
 
 r.patch('/users/:id', wrap(async (req, res) => {
@@ -84,7 +86,7 @@ r.patch('/users/:id', wrap(async (req, res) => {
   const sets = [];
   const vals = [id];
   const add = (sql, v) => { vals.push(v); sets.push(sql.replace('?', `$${vals.length}`)); };
-  for (const k of ['name', 'is_free', 'disabled', 'role', 'email_alerts', 'skills', 'titles']) if (k in d) add(`${k} = ?`, d[k]);
+  for (const k of ['name', 'is_free', 'disabled', 'role', 'email_alerts', 'skills', 'titles', 'email_verified']) if (k in d) add(`${k} = ?`, d[k]);
   if ('paid_until' in d) add('paid_until = ?', d.paid_until);
   if (d.extend_days) add(`paid_until = GREATEST(coalesce(paid_until, now()), now()) + (? || ' days')::interval`, d.extend_days);
   if (d.disabled === true || d.role || d.logout_everywhere) sets.push('token_version = token_version + 1'); // force re-login

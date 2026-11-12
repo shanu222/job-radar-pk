@@ -27,6 +27,7 @@ export async function requireAuth(req, res, next) {
     if (!token) return res.status(401).json({ error: 'Please sign in' });
     const user = await userFromToken(token);
     if (!user) return res.status(401).json({ error: 'Session expired, please sign in again' });
+    if (!user.email_verified && user.role !== 'admin') return res.status(401).json({ error: 'Please verify your email to continue', needsVerification: true });
     req.user = user;
     next();
   } catch {

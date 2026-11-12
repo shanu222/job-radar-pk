@@ -180,7 +180,7 @@ function UsersTab() {
         <div className="relative min-w-[220px] flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
           <input className="input pl-9" placeholder="Search name or email" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <select className="input w-auto" value={filter} onChange={(e) => setFilter(e.target.value)}>
-          <option value="">All users</option><option value="paying">Paying</option><option value="free">Free access</option><option value="admins">Admins</option><option value="disabled">Suspended</option>
+          <option value="">All users</option><option value="paying">Paying</option><option value="free">Free access</option><option value="admins">Admins</option><option value="disabled">Suspended</option><option value="unverified">Email not verified</option>
         </select>
       </div>
       <p className="mb-3 text-sm text-ink-soft">{data ? `${data.total} users` : 'Loading…'}</p>
@@ -188,7 +188,7 @@ function UsersTab() {
         {data?.users.map((u) => (
           <div key={u.id} className={`flex flex-wrap items-center gap-3 p-4 text-sm ${u.disabled ? 'opacity-60' : ''}`}>
             <div className="min-w-[220px] flex-1">
-              <p className="font-medium">{u.name || '—'} {u.role === 'admin' && <span className="chip ml-1 bg-brand-tint text-brand-dark"><Shield size={11} />Admin</span>} {u.google && <span className="chip ml-1 bg-paper text-ink-soft">Google</span>}</p>
+              <p className="font-medium">{u.name || '—'} {u.role === 'admin' && <span className="chip ml-1 bg-brand-tint text-brand-dark"><Shield size={11} />Admin</span>} {u.google && <span className="chip ml-1 bg-paper text-ink-soft">Google</span>} {!u.email_verified && u.role !== 'admin' && <span className="chip ml-1 bg-alert-tint text-alert">Email not verified</span>}</p>
               <p className="text-ink-soft">{u.email}</p>
               <p className="mt-1 text-xs text-ink-soft">Joined {d10(u.created_at)}. Last seen {d10(u.last_login)}. {u.has_cv ? 'CV uploaded' : 'No CV'}</p>
             </div>
@@ -199,8 +199,9 @@ function UsersTab() {
             </div>
             <div className="flex flex-wrap gap-1.5">
               {busy === u.id ? <Loader2 size={16} className="animate-spin" /> : <>
-                <button onClick={() => patch(u, { is_free: !u.is_free })} className={`btn-ghost px-2.5 py-1.5 text-xs ${u.is_free ? 'border-brand text-brand' : ''}`} title="Give / remove free Pro access"><Gift size={13} />{u.is_free ? 'Free ✓' : 'Make free'}</button>
-                <button onClick={() => extend(u)} className="btn-ghost px-2.5 py-1.5 text-xs" title="Add or remove Pro days">+ Days</button>
+                <button onClick={() => patch(u, { is_free: !u.is_free })} className={`btn-ghost px-2.5 py-1.5 text-xs ${u.is_free ? 'border-brand text-brand' : ''}`} title="Give / remove free Pro access"><Gift size={13} />{u.is_free ? 'Remove free' : 'Make free'}</button>
+                <button onClick={() => extend(u)} className="btn-ghost px-2.5 py-1.5 text-xs" title="Add or remove Pro days">Add days</button>
+                {!u.email_verified && u.role !== 'admin' && <button onClick={() => patch(u, { email_verified: true }, { title: 'Mark this email as verified?', message: `${u.email} will be able to sign in without entering a code. Only do this if you know the address belongs to them.`, confirmLabel: 'Mark verified' })} className="btn-ghost px-2.5 py-1.5 text-xs">Mark verified</button>}
                 {u.id !== me.id && <>
                   <button onClick={() => patch(u, { disabled: !u.disabled }, u.disabled ? null : { title: 'Suspend this user?', message: `${u.email} will be signed out and can't sign in until restored.`, confirmLabel: 'Suspend', danger: true })} className="btn-ghost px-2.5 py-1.5 text-xs" title={u.disabled ? 'Restore' : 'Suspend'}>{u.disabled ? <RotateCcw size={13} /> : <Ban size={13} />}{u.disabled ? 'Restore' : 'Suspend'}</button>
                   <button onClick={() => patch(u, { role: u.role === 'admin' ? 'user' : 'admin' }, u.role === 'admin' ? { title: 'Remove admin rights?', message: `${u.email} will become a normal user.`, confirmLabel: 'Demote' } : { title: 'Make this user an admin?', message: `${u.email} will be able to approve payments, delete users and change all settings.`, confirmLabel: 'Make admin', danger: true })} className="btn-ghost px-2.5 py-1.5 text-xs"><Shield size={13} />{u.role === 'admin' ? 'Demote' : 'Make admin'}</button>
