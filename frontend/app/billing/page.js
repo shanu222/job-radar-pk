@@ -5,6 +5,7 @@ import { Copy, Check, UploadCloud, Clock, CheckCircle2, XCircle, ShieldCheck, Im
 import { api, fmtDate } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import RequireAuth from '@/components/RequireAuth';
+import { useToast } from '@/components/Toast';
 
 const METHODS = {
   easypaisa: { name: 'Easypaisa', color: '#1fb04b', tint: 'bg-[#e9f8ee]' },
@@ -35,6 +36,7 @@ function Billing() {
   const [preview, setPreview] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState(null);
+  const toast = useToast();
   const input = useRef(null);
 
   const load = () => { api('/api/billing/payments').then((d) => setPayments(d.payments)).catch(() => {}); refreshUser(); };
@@ -56,10 +58,10 @@ function Billing() {
     fd.append('method', method); fd.append('txn_id', form.txn_id.trim()); fd.append('sender_number', form.sender_number.trim()); fd.append('screenshot', file);
     try {
       await api('/api/billing/payments', { method: 'POST', form: fd });
-      setMsg({ ok: 'Payment submitted. We’ll verify it and email you — usually within a few hours.' });
+      toast.success('Payment submitted. We’ll verify it and email you — usually within a few hours.');
       setForm({ txn_id: '', sender_number: '' }); setFile(null); setPreview('');
       load();
-    } catch (err) { setMsg({ err: err.message }); } finally { setBusy(false); }
+    } catch (err) { toast.error(err); } finally { setBusy(false); }
   }
 
   if (!plan) return <div className="mx-auto max-w-5xl px-4 py-16"><div className="card h-80 animate-pulse" /></div>;
@@ -153,7 +155,6 @@ function Billing() {
                 <p className="flex items-start gap-1.5 text-xs text-ink-soft"><ShieldCheck size={14} className="mt-px shrink-0" />Your screenshot is only visible to the JobRadar admin. Each Transaction ID can be used once.</p>
               </form>
             )}
-            {msg?.ok && <p className="mt-4 rounded-lg bg-brand-tint px-3 py-2 text-sm text-brand-dark">{msg.ok}</p>}
           </section>
         </div>
       )}

@@ -9,6 +9,7 @@ import { api, API, getToken, fmtDate } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
 import RequireAuth from '@/components/RequireAuth';
 import { useDialog } from '@/components/Dialog';
+import { useToast } from '@/components/Toast';
 
 const TABS = [
   ['overview', 'Overview', LayoutDashboard], ['payments', 'Payments', Wallet], ['users', 'Users', Users],
@@ -88,6 +89,7 @@ function Payments() {
   const [busy, setBusy] = useState(null);
   const [notes, setNotes] = useState({});
   const dlg = useDialog();
+  const toast = useToast();
   const load = useCallback(() => { setList(null); api(`/api/admin/payments?status=${status}`).then((d) => setList(d.payments)); }, [status]);
   useEffect(load, [load]);
 
@@ -96,8 +98,8 @@ function Payments() {
     if (action === 'reject' && !notes[p.id] && !(await dlg.confirm({ title: 'Reject without a reason?', message: 'The user will be emailed that their payment could not be verified.', confirmLabel: 'Reject', danger: true }))) return;
     if (action === 'approve' && !(await dlg.confirm({ title: `Approve ${ref} ${p.txn_id}?`, message: `${p.email} will get Pro access.\n\nOnly approve after you see this ${ref} and Rs ${p.amount} in your ${{ easypaisa: 'Easypaisa app', jazzcash: 'JazzCash app', bank: 'HBL statement' }[p.method]}.`, confirmLabel: 'Approve' }))) return;
     setBusy(p.id);
-    try { await api(`/api/admin/payments/${p.id}/review`, { method: 'POST', body: { action, note: notes[p.id] || undefined } }); load(); }
-    catch (e) { dlg.alert({ title: 'Could not update payment', message: e.message, danger: true }); } finally { setBusy(null); }
+    try { await api(`/api/admin/payments/${p.id}/review`, { method: 'POST', body: { action, note: notes[p.id] || undefined } }); toast.success(action === 'approve' ? 'Payment approved — the user has been emailed' : 'Payment rejected — the user has been emailed'); load(); }
+    catch (e) { toast.error(e); } finally { setBusy(null); }
   };
 
   return (
@@ -151,6 +153,7 @@ function UsersTab() {
   const [data, setData] = useState(null);
   const [busy, setBusy] = useState(null);
   const dlg = useDialog();
+  const toast = useToast();
   const load = useCallback(() => api(`/api/admin/users?q=${encodeURIComponent(q)}&filter=${filter}`).then(setData), [q, filter]);
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [load]);
 
@@ -158,7 +161,7 @@ function UsersTab() {
     if (confirmMsg && !(await dlg.confirm({ ...confirmMsg }))) return;
     setBusy(u.id);
     try { await api(`/api/admin/users/${u.id}`, { method: 'PATCH', body }); await load(); }
-    catch (e) { dlg.alert({ title: 'Could not update user', message: e.message, danger: true }); } finally { setBusy(null); }
+    catch (e) { toast.error(e); } finally { setBusy(null); }
   };
   const extend = async (u) => {
     const v = await dlg.prompt({ title: 'Add Pro days', message: `How many days of Pro for ${u.email}? Use a negative number to remove days.`, defaultValue: '30', type: 'number', confirmLabel: 'Apply' });
@@ -167,8 +170,8 @@ function UsersTab() {
   const del = async (u) => {
     if (!(await dlg.confirm({ title: 'Delete this account?', message: `${u.email} and all their data (CV, saved jobs, payments) will be permanently deleted. This cannot be undone.`, confirmLabel: 'Delete account', danger: true }))) return;
     setBusy(u.id);
-    try { await api(`/api/admin/users/${u.id}`, { method: 'DELETE' }); await load(); }
-    catch (e) { dlg.alert({ title: 'Could not delete', message: e.message, danger: true }); } finally { setBusy(null); }
+    try { await api(`/api/admin/users/${u.id}`, { method: 'DELETE' }); toast.success('Account deleted'); await load(); }
+    catch (e) { toast.error(e); } finally { setBusy(null); }
   };
 
   return (
@@ -227,16 +230,15 @@ function Section({ title, children, onSave }) {
 function SettingsTab() {
   const [s, setS] = useState(null);
   const [secrets, setSecrets] = useState({ ai: '', resend: '' });
-  const [msg, setMsg] = useState(null);
   const [test, setTest] = useState({});
   const dlg = useDialog();
+  const toast = useToast();
   useEffect(() => { api('/api/admin/settings').then((d) => setS(d.settings)); }, []);
   if (!s) return <div className="card h-64 animate-pulse" />;
 
   const save = async (patch) => {
-    setMsg(null);
-    try { const d = await api('/api/admin/settings', { method: 'PUT', body: patch }); setS(d.settings); setSecrets({ ai: '', resend: '' }); setMsg({ ok: 'Saved' }); setTimeout(() => setMsg(null), 2000); }
-    catch (e) { setMsg({ err: e.message }); }
+    try { const d = await api('/api/admin/settings', { method: 'PUT', body: patch }); setS(d.settings); setSecrets({ ai: '', resend: '' }); toast.success('Settings saved'); }
+    catch (e) { toast.error(e); }
   };
   const runTest = async (kind) => {
     setTest({ [kind]: { busy: true } });
@@ -252,8 +254,6 @@ function SettingsTab() {
 
   return (
     <div className="space-y-6">
-      {msg?.ok && <p className="fixed bottom-6 right-6 z-50 rounded-xl bg-ink px-4 py-3 text-sm text-white shadow-lg">{msg.ok}</p>}
-      {msg?.err && <p className="rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{msg.err}</p>}
 
       <Section title="Access & pricing">
         <label className="flex cursor-pointer items-start justify-between gap-4 rounded-xl bg-paper p-4">

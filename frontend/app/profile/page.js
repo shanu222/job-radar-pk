@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { X, Check, KeyRound, Trash2, MailCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { COUNTRIES, PROVINCES } from '@/lib/places';
+import { useToast } from '@/components/Toast';
 import Link from 'next/link';
 import { api } from '@/lib/api';
 import { useAuth } from '@/components/AuthProvider';
@@ -31,13 +32,13 @@ const CATS = [['govt', 'Government'], ['private', 'Private & NGO'], ['remote', '
 function PasswordForm() {
   const { user, signIn } = useAuth();
   const [f, setF] = useState({ current: '', next: '' });
-  const [msg, setMsg] = useState(null);
+  const toast = useToast();
   const submit = async (e) => {
-    e.preventDefault(); setMsg(null);
+    e.preventDefault();
     try {
       const { token, user: u } = await api('/api/auth/password', { method: 'POST', body: user.has_password ? f : { next: f.next } });
-      signIn(token, u); setF({ current: '', next: '' }); setMsg({ ok: 'Password updated. Other devices have been signed out.' });
-    } catch (err) { setMsg({ err: err.message }); }
+      signIn(token, u); setF({ current: '', next: '' }); toast.success('Password updated. Other devices have been signed out.');
+    } catch (err) { toast.error(err); }
   };
   return (
     <form onSubmit={submit} className="card mt-6 space-y-4 p-6 sm:p-8">
@@ -45,8 +46,6 @@ function PasswordForm() {
       {!user.has_password && <p className="text-sm text-ink-soft">You sign in with Google. Set a password if you also want to sign in with email.</p>}
       {user.has_password && <input type="password" className="input" placeholder="Current password" required autoComplete="current-password" value={f.current} onChange={(e) => setF({ ...f, current: e.target.value })} />}
       <input type="password" className="input" placeholder="New password (8+ characters, letters and numbers)" required minLength={8} maxLength={128} autoComplete="new-password" value={f.next} onChange={(e) => setF({ ...f, next: e.target.value })} />
-      {msg?.err && <p className="rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{msg.err}</p>}
-      {msg?.ok && <p className="rounded-lg bg-brand-tint px-3 py-2 text-sm text-brand-dark">{msg.ok}</p>}
       <button className="btn-ghost">Update password</button>
     </form>
   );
@@ -103,14 +102,14 @@ function Profile() {
     country: user.country || 'PK', domicile: user.domicile || '',
   });
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState('');
+  const toast = useToast();
 
   const save = async (e) => {
-    e.preventDefault(); setError('');
+    e.preventDefault();
     try {
       const { user } = await api('/api/auth/me', { method: 'PATCH', body: { ...p, experience_years: p.experience_years === '' ? null : Number(p.experience_years), domicile: p.country === 'PK' ? (p.domicile || undefined) : null } });
-      setUser(user); setSaved(true); setTimeout(() => setSaved(false), 2000);
-    } catch (err) { setError(err.message); }
+      setUser(user); setSaved(true); setTimeout(() => setSaved(false), 2000); toast.success('Profile saved');
+    } catch (err) { toast.error(err); }
   };
 
   return (
@@ -153,7 +152,6 @@ function Profile() {
           <span><b className="text-sm">Daily email alerts</b><span className="block text-sm text-ink-soft">Saved & matching jobs closing soon, plus new strong matches. Sent around 9 AM.</span></span>
           <input type="checkbox" className="mt-1 h-5 w-5 accent-[#0d6b45]" checked={p.email_alerts} onChange={(e) => setP({ ...p, email_alerts: e.target.checked })} />
         </label>
-        {error && <p className="rounded-lg bg-danger-tint px-3 py-2 text-sm text-danger">{error}</p>}
         <button className="btn-primary">{saved ? <><Check size={16} /> Saved</> : 'Save changes'}</button>
       </form>
       <PasswordForm />

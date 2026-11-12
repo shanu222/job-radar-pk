@@ -5,6 +5,7 @@ import { AuthProvider } from '@/components/AuthProvider';
 import Navbar from '@/components/Navbar';
 import { DialogProvider } from '@/components/Dialog';
 import CompleteProfile from '@/components/CompleteProfile';
+import { ToastProvider } from '@/components/Toast';
 
 export const metadata = {
   title: 'JobRadar PK — Every job in Pakistan & remote, with deadlines',
@@ -15,6 +16,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen font-sans">
+        <ToastProvider>
         <AuthProvider>
           <DialogProvider>
           <Navbar />
@@ -25,6 +27,7 @@ export default function RootLayout({ children }) {
           </footer>
         </DialogProvider>
         </AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

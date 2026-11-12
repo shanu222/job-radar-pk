@@ -7,12 +7,20 @@ export async function api(path, { method = 'GET', body, form, auth = true } = {}
   const token = auth ? getToken() : null;
   if (token) headers.authorization = `Bearer ${token}`;
   if (body) headers['content-type'] = 'application/json';
-  const res = await fetch(`${API}${path}`, { method, headers, body: form || (body ? JSON.stringify(body) : undefined) });
+  let res;
+  try {
+    res = await fetch(`${API}${path}`, { method, headers, body: form || (body ? JSON.stringify(body) : undefined) });
+  } catch {
+    throw Object.assign(new Error('Can’t reach the server. Check your internet connection and try again.'), { userFacing: true, status: 0 });
+  }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = new Error(data.error || `Request failed (${res.status})`);
-    err.status = res.status;
-    throw err;
+    // Our API's error messages are written for users; anything unexpected gets a generic message
+    const msg = data.error && res.status < 500 ? data.error
+      : res.status === 429 ? 'Too many requests. Please wait a moment and try again.'
+      : res.status >= 500 ? 'Something went wrong on our side. Please try again in a minute.'
+      : 'Something went wrong. Please try again.';
+    throw Object.assign(new Error(msg), { status: res.status, userFacing: true });
   }
   return data;
 }
